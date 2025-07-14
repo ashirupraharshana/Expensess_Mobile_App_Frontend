@@ -248,6 +248,7 @@ class homeFragment : Fragment() {
         }
     }
 
+
     private fun updateBudgetInfo() {
         val currency = sharedPrefsManager.getCurrency()
         val userId = getUserIdFromSession()
@@ -274,22 +275,18 @@ class homeFragment : Fragment() {
                     budgetConnection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
                 }
 
-                // Check if response is empty or null
+                // Parse budget
                 val budget = if (budgetResponse.isNullOrEmpty()) {
                     0.0
                 } else {
                     try {
-                        // Try to parse as JSON first
                         val budgetJson = JSONObject(budgetResponse)
                         budgetJson.optDouble("budget", 0.0)
                     } catch (jsonException: Exception) {
-                        // If JSON parsing fails, try to parse as plain number
                         try {
                             budgetResponse.trim().toDoubleOrNull() ?: 0.0
                         } catch (numberException: Exception) {
-                            // If both fail, check if it's an error message
                             if (budgetResponse.contains("error", ignoreCase = true)) {
-                                // Log error and use default budget
                                 println("Budget API error: $budgetResponse")
                                 0.0
                             } else {
@@ -301,16 +298,37 @@ class homeFragment : Fragment() {
 
                 val percentUsed = if (budget > 0) ((totalExpenses / budget) * 100).toInt() else 0
 
-                // Trigger notification if budget exceeded based on alert percent
+                // MODIFIED: Enhanced notification logic - show exceeded notifications every time
                 val alertPercent = sharedPrefsManager.getBudgetAlertPercent()
                 val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
 
-                if (notificationsEnabled && percentUsed >= alertPercent) {
-                    requireActivity().runOnUiThread {
-                        showNotificationOnce(
-                            title = "Budget Alert",
-                            message = "You have exceeded $alertPercent% of your monthly budget!"
-                        )
+                if (notificationsEnabled && budget > 0) {
+                    when {
+                        percentUsed >= 100 -> {
+                            requireActivity().runOnUiThread {
+                                // Always show notification when budget is exceeded
+                                showBudgetExceededNotification(
+                                    title = "Budget Exceeded!",
+                                    message = "You have exceeded your monthly budget by ${percentUsed - 100}%! Current spending: $currency ${String.format("%.2f", totalExpenses)}"
+                                )
+                            }
+                        }
+                        percentUsed >= alertPercent -> {
+                            requireActivity().runOnUiThread {
+                                showBudgetNotificationOnce(
+                                    title = "Budget Alert",
+                                    message = "You have used $percentUsed% of your monthly budget ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
+                                )
+                            }
+                        }
+                        percentUsed >= 90 -> {
+                            requireActivity().runOnUiThread {
+                                showBudgetNotificationOnce(
+                                    title = "Budget Warning",
+                                    message = "You're approaching your budget limit! $percentUsed% used ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -323,25 +341,29 @@ class homeFragment : Fragment() {
                     spentPercentText.text = "Spent: $percentUsed%"
                     limitText.text = "of $currency ${String.format("%.2f", budget)} limit"
 
-                    // Color changes
+                    // Enhanced color changes with more granular states
                     when {
                         percentUsed >= 100 -> {
                             budgetTextView.setTextColor(requireContext().getColor(R.color.transport))
                             progressBar.setIndicatorColor(requireContext().getColor(R.color.transport))
                             limitText.setTextColor(requireContext().getColor(R.color.transport))
+                            progressPercentage.setTextColor(requireContext().getColor(R.color.transport))
                         }
-                        percentUsed > 90 -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.transport))
-                            progressBar.setIndicatorColor(requireContext().getColor(R.color.transport))
-                            limitText.setTextColor(requireContext().getColor(R.color.transport))
+                        percentUsed >= 90 -> {
+                            budgetTextView.setTextColor(requireContext().getColor(R.color.food))
+                            progressBar.setIndicatorColor(requireContext().getColor(R.color.food))
+                            limitText.setTextColor(requireContext().getColor(R.color.food))
+                            progressPercentage.setTextColor(requireContext().getColor(R.color.food))
                         }
-                        percentUsed > 75 -> {
+                        percentUsed >= 75 -> {
                             budgetTextView.setTextColor(requireContext().getColor(R.color.food))
                             progressBar.setIndicatorColor(requireContext().getColor(R.color.food))
                         }
                         else -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.food))
+                            budgetTextView.setTextColor(requireContext().getColor(R.color.Blue))
                             progressBar.setIndicatorColor(requireContext().getColor(R.color.Blue))
+                            limitText.setTextColor(requireContext().getColor(R.color.Blue))
+                            progressPercentage.setTextColor(requireContext().getColor(R.color.Blue))
                         }
                     }
                 }
@@ -366,27 +388,43 @@ class homeFragment : Fragment() {
             }
         }
     }
-
-    private fun showNotificationOnce(title: String, message: String) {
+    private fun showBudgetExceededNotification(title: String, message: String) {
+        showNotification(title, message)
+    }
+    private fun showBudgetNotificationOnce(title: String, message: String) {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val currentMonthYear = "$currentYear-$currentMonth"
 
-        val lastNotificationMonth = notificationPrefs.getString(NOTIFICATION_MONTH_KEY, "")
-        val notificationSent = notificationPrefs.getBoolean(NOTIFICATION_SENT_KEY, false)
+        // Create unique keys for different notification types (excluding exceeded)
+        val notificationKey = when {
+            title.contains("Alert") -> "alert_$currentMonthYear"
+            title.contains("Warning") -> "warning_$currentMonthYear"
+            else -> "general_$currentMonthYear"
+        }
 
-        // Check if we're in a new month or if notification hasn't been sent this month
-        if (lastNotificationMonth != currentMonthYear || !notificationSent) {
-            // Show the notification
+        val notificationSent = notificationPrefs.getBoolean(notificationKey, false)
+
+        // Show notification if not sent for this type this month
+        if (!notificationSent) {
             showNotification(title, message)
 
-            // Mark notification as sent for this month
+            // Mark this notification type as sent for this month
             val editor = notificationPrefs.edit()
-            editor.putBoolean(NOTIFICATION_SENT_KEY, true)
-            editor.putString(NOTIFICATION_MONTH_KEY, currentMonthYear)
+            editor.putBoolean(notificationKey, true)
             editor.apply()
         }
+    }
+    private fun clearExceededNotificationTracking() {
+        val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
+        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        val currentMonthYear = "$currentYear-$currentMonth"
+
+        val editor = notificationPrefs.edit()
+        editor.remove("exceeded_$currentMonthYear")
+        editor.apply()
     }
 
     private fun showNotification(title: String, message: String) {
@@ -401,17 +439,40 @@ class homeFragment : Fragment() {
                 NotificationManager.IMPORTANCE_HIGH
             )
             channel.description = "Notifications when budget limit is exceeded"
+            channel.enableVibration(true)
+            channel.enableLights(true)
             notificationManager.createNotificationChannel(channel)
         }
 
+        // Create an intent to open the app when notification is clicked
+        val intent = Intent(requireContext(), requireActivity()::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(
+            requireContext(),
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(requireContext(), channelId)
-            .setSmallIcon(R.drawable.food)
+            .setSmallIcon(R.drawable.food) // Use a money or budget icon if available
             .setContentTitle(title)
             .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
 
-        notificationManager.notify(Random().nextInt(), builder.build())
+        // Use different notification IDs for different types
+        val notificationId = when {
+            title.contains("Exceeded") -> 1001
+            title.contains("Alert") -> 1002
+            title.contains("Warning") -> 1003
+            else -> 1000
+        }
+
+        notificationManager.notify(notificationId, builder.build())
     }
 
     /**
@@ -423,6 +484,30 @@ class homeFragment : Fragment() {
         val editor = notificationPrefs.edit()
         editor.putBoolean(NOTIFICATION_SENT_KEY, false)
         editor.apply()
+    }
+    // Method to reset notifications for new month (call this when month changes)
+    private fun resetMonthlyNotifications() {
+        val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
+        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        val currentMonthYear = "$currentYear-$currentMonth"
+
+        val editor = notificationPrefs.edit()
+        editor.putBoolean("exceeded_$currentMonthYear", false)
+        editor.putBoolean("alert_$currentMonthYear", false)
+        editor.putBoolean("warning_$currentMonthYear", false)
+        editor.apply()
+    }
+    // Method to check if any budget notification was sent this month
+    private fun hasAnyBudgetNotificationBeenSent(): Boolean {
+        val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
+        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        val currentMonthYear = "$currentYear-$currentMonth"
+
+        return notificationPrefs.getBoolean("exceeded_$currentMonthYear", false) ||
+                notificationPrefs.getBoolean("alert_$currentMonthYear", false) ||
+                notificationPrefs.getBoolean("warning_$currentMonthYear", false)
     }
 
     /**

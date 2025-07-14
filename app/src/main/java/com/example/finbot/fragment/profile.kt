@@ -247,7 +247,7 @@ class profileFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.100:8082/api/notifications/get?userId=$userId")
+                val url = URL("http://192.168.1.100:8082/api/budget/get?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -452,32 +452,37 @@ class profileFragment : Fragment() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val url = URL("http://192.168.1.100:8082/api/budget/save")
-                    val connection = url.openConnection() as HttpURLConnection
-                    connection.requestMethod = "POST"
-                    connection.setRequestProperty("Content-Type", "application/json")
-                    connection.doOutput = true
+                    // First update budget
+                    val budgetUrl = URL("http://192.168.1.100:8082/api/budget/update/budget?userId=$userId&budget=$budget")
+                    val budgetConnection = budgetUrl.openConnection() as HttpURLConnection
+                    budgetConnection.requestMethod = "PUT"
+                    budgetConnection.setRequestProperty("Content-Type", "application/json")
 
-                    val jsonObject = JSONObject().apply {
-                        put("userId", userId)
-                        put("budget", budget)
-                        put("currency", currencyIndex)
-                    }
+                    val budgetResponseCode = budgetConnection.responseCode
+                    budgetConnection.disconnect()
 
-                    connection.outputStream.use { output ->
-                        output.write(jsonObject.toString().toByteArray())
-                        output.flush()
-                    }
+                    if (budgetResponseCode == HttpURLConnection.HTTP_OK) {
+                        // Then update currency
+                        val currencyUrl = URL("http://192.168.1.100:8082/api/budget/update/currency?userId=$userId&currency=$currencyIndex")
+                        val currencyConnection = currencyUrl.openConnection() as HttpURLConnection
+                        currencyConnection.requestMethod = "PUT"
+                        currencyConnection.setRequestProperty("Content-Type", "application/json")
 
-                    val responseCode = connection.responseCode
-                    requireActivity().runOnUiThread {
-                        if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
-                            showSnackbar("Budget settings saved successfully")
-                        } else {
-                            showSnackbar("Failed to save budget settings")
+                        val currencyResponseCode = currencyConnection.responseCode
+                        currencyConnection.disconnect()
+
+                        requireActivity().runOnUiThread {
+                            if (currencyResponseCode == HttpURLConnection.HTTP_OK) {
+                                showSnackbar("Budget settings saved successfully")
+                            } else {
+                                showSnackbar("Failed to save currency setting")
+                            }
+                        }
+                    } else {
+                        requireActivity().runOnUiThread {
+                            showSnackbar("Failed to save budget setting")
                         }
                     }
-                    connection.disconnect()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     requireActivity().runOnUiThread {
@@ -490,6 +495,7 @@ class profileFragment : Fragment() {
         }
     }
 
+
     private fun saveNotificationSettings() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) {
@@ -497,26 +503,20 @@ class profileFragment : Fragment() {
             return
         }
 
-        val jsonObject = JSONObject().apply {
-            put("userId", userId)
-            put("notificationsEnabled", budgetAlertsSwitch.isChecked)
-            put("reminderEnabled", dailyReminderSwitch.isChecked)
-            put("alertPercent", alertThresholdSeekBar.progress)
-        }
+        val notificationsEnabled = budgetAlertsSwitch.isChecked
+        val reminderEnabled = dailyReminderSwitch.isChecked
+        val alertPercent = alertThresholdSeekBar.progress
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.100:8082/api/notifications/save")
+                val url = URL("http://192.168.1.100:8082/api/budget/update/notifications?userId=$userId&notificationsEnabled=$notificationsEnabled&reminderEnabled=$reminderEnabled&alertPercent=$alertPercent")
                 val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"
+                connection.requestMethod = "PUT"
                 connection.setRequestProperty("Content-Type", "application/json")
-                connection.doOutput = true
-
-                connection.outputStream.use {
-                    it.write(jsonObject.toString().toByteArray())
-                }
 
                 val responseCode = connection.responseCode
+                connection.disconnect()
+
                 requireActivity().runOnUiThread {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
                         showSnackbar("Notification settings saved")
