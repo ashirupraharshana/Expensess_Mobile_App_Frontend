@@ -44,13 +44,23 @@ class homeFragment : Fragment() {
     private lateinit var progressPercentage: TextView
     private lateinit var spentPercentText: TextView
     private lateinit var limitText: TextView
-    private lateinit var welcomeNote: TextView // Add this line
+    private lateinit var welcomeNote: TextView
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var notificationHelper: NotificationHelper
     private lateinit var adapter: ExpenseAdapter
 
     // Categories used for expense spinner
     private val categories = arrayOf("Food", "Shopping", "Transport", "Health", "Utility", "Other")
+
+    // Currency mapping
+    private val currencyMap = mapOf(
+        0 to "LKR",
+        1 to "USD",
+        2 to "EUR",
+        3 to "GBP",
+        4 to "INR",
+        5 to "AUD"
+    )
 
     // Notification tracking
     private val NOTIFICATION_PREF = "budget_notification_tracker"
@@ -92,6 +102,7 @@ class homeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         loadUsernameFromBackend() // Load username from backend
+        fetchCurrencyFromBackend() // Fetch currency from backend
         loadExpenses()
         updateBudgetInfo()
         fetchAndDisplayTotalExpenses()
@@ -100,6 +111,67 @@ class homeFragment : Fragment() {
     private fun getUserIdFromSession(): String {
         val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
         return sharedPref.getString("user_id", "") ?: ""
+    }
+
+    // New method to fetch currency from backend
+    private fun fetchCurrencyFromBackend() {
+        val userId = getUserIdFromSession()
+        if (userId.isEmpty()) {
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL("http://192.168.1.100:8082/api/budget/currency?userId=$userId")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val inputStream = connection.inputStream
+                    val response = inputStream.bufferedReader().use { it.readText() }
+
+                    // Parse the currency ID from response
+                    val currencyId = try {
+                        response.trim().toInt()
+                    } catch (e: NumberFormatException) {
+                        0 // Default to LKR if parsing fails
+                    }
+
+                    // Get currency string from mapping
+                    val currencyString = currencyMap[currencyId] ?: "LKR"
+
+                    // Update SharedPreferences with fetched currency
+                    requireActivity().runOnUiThread {
+                        sharedPrefsManager.setCurrency(currencyString)
+                        // Refresh the UI with new currency
+                        updateBudgetInfo()
+                        fetchAndDisplayTotalExpenses()
+                    }
+                } else {
+                    // Handle error - use default currency
+                    requireActivity().runOnUiThread {
+                        val defaultCurrency = sharedPrefsManager.getCurrency()
+                        if (defaultCurrency.isEmpty()) {
+                            sharedPrefsManager.setCurrency("LKR")
+                        }
+                    }
+                }
+                connection.disconnect()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                requireActivity().runOnUiThread {
+                    // On error, use existing currency or default to LKR
+                    val currentCurrency = sharedPrefsManager.getCurrency()
+                    if (currentCurrency.isEmpty()) {
+                        sharedPrefsManager.setCurrency("LKR")
+                    }
+                }
+            }
+        }
     }
 
     // Add this new method to fetch username from backend
@@ -116,6 +188,8 @@ class homeFragment : Fragment() {
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
 
                 val responseCode = connection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -158,6 +232,8 @@ class homeFragment : Fragment() {
                 val url = URL("http://192.168.1.100:8082/api/expenses/total?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
 
                 val responseCode = connection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -192,6 +268,8 @@ class homeFragment : Fragment() {
                 val url = URL("http://192.168.1.100:8082/api/expenses/user?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
 
                 val responseCode = connection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -248,7 +326,6 @@ class homeFragment : Fragment() {
         }
     }
 
-
     private fun updateBudgetInfo() {
         val currency = sharedPrefsManager.getCurrency()
         val userId = getUserIdFromSession()
@@ -259,6 +336,8 @@ class homeFragment : Fragment() {
                 val expenseUrl = URL("http://192.168.1.100:8082/api/expenses/total?userId=$userId")
                 val expenseConnection = expenseUrl.openConnection() as HttpURLConnection
                 expenseConnection.requestMethod = "GET"
+                expenseConnection.connectTimeout = 5000
+                expenseConnection.readTimeout = 5000
 
                 val expenseResponse = expenseConnection.inputStream.bufferedReader().use { it.readText() }
                 val totalExpenses = expenseResponse.toDoubleOrNull() ?: 0.0
@@ -267,6 +346,8 @@ class homeFragment : Fragment() {
                 val budgetUrl = URL("http://192.168.1.100:8082/api/budget/get?userId=$userId")
                 val budgetConnection = budgetUrl.openConnection() as HttpURLConnection
                 budgetConnection.requestMethod = "GET"
+                budgetConnection.connectTimeout = 5000
+                budgetConnection.readTimeout = 5000
 
                 val responseCode = budgetConnection.responseCode
                 val budgetResponse = if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -298,7 +379,7 @@ class homeFragment : Fragment() {
 
                 val percentUsed = if (budget > 0) ((totalExpenses / budget) * 100).toInt() else 0
 
-                // MODIFIED: Enhanced notification logic - show exceeded notifications every time
+                // Enhanced notification logic - show exceeded notifications every time
                 val alertPercent = sharedPrefsManager.getBudgetAlertPercent()
                 val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
 
@@ -347,7 +428,7 @@ class homeFragment : Fragment() {
                             budgetTextView.setTextColor(requireContext().getColor(R.color.transport))
                             progressBar.setIndicatorColor(requireContext().getColor(R.color.transport))
                             limitText.setTextColor(requireContext().getColor(R.color.transport))
-                            progressPercentage.setTextColor(requireContext().getColor(R.color.transport))
+                            progressPercentage.setTextColor(requireContext().getColor(R.color.white))
                         }
                         percentUsed >= 90 -> {
                             budgetTextView.setTextColor(requireContext().getColor(R.color.food))
@@ -360,10 +441,10 @@ class homeFragment : Fragment() {
                             progressBar.setIndicatorColor(requireContext().getColor(R.color.food))
                         }
                         else -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.Blue))
+                            budgetTextView.setTextColor(requireContext().getColor(R.color.food))
                             progressBar.setIndicatorColor(requireContext().getColor(R.color.Blue))
                             limitText.setTextColor(requireContext().getColor(R.color.Blue))
-                            progressPercentage.setTextColor(requireContext().getColor(R.color.Blue))
+                            progressPercentage.setTextColor(requireContext().getColor(R.color.black))
                         }
                     }
                 }
@@ -388,9 +469,11 @@ class homeFragment : Fragment() {
             }
         }
     }
+
     private fun showBudgetExceededNotification(title: String, message: String) {
         showNotification(title, message)
     }
+
     private fun showBudgetNotificationOnce(title: String, message: String) {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
@@ -416,6 +499,7 @@ class homeFragment : Fragment() {
             editor.apply()
         }
     }
+
     private fun clearExceededNotificationTracking() {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
@@ -455,7 +539,7 @@ class homeFragment : Fragment() {
         )
 
         val builder = NotificationCompat.Builder(requireContext(), channelId)
-            .setSmallIcon(R.drawable.food) // Use a money or budget icon if available
+            .setSmallIcon(R.drawable.logo)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -475,17 +559,13 @@ class homeFragment : Fragment() {
         notificationManager.notify(notificationId, builder.build())
     }
 
-    /**
-     * Reset notification flag - call this when budget is updated or when you want to allow
-     * notifications again for the current period
-     */
     private fun resetNotificationFlag() {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val editor = notificationPrefs.edit()
         editor.putBoolean(NOTIFICATION_SENT_KEY, false)
         editor.apply()
     }
-    // Method to reset notifications for new month (call this when month changes)
+
     private fun resetMonthlyNotifications() {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
@@ -498,7 +578,7 @@ class homeFragment : Fragment() {
         editor.putBoolean("warning_$currentMonthYear", false)
         editor.apply()
     }
-    // Method to check if any budget notification was sent this month
+
     private fun hasAnyBudgetNotificationBeenSent(): Boolean {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
@@ -510,9 +590,6 @@ class homeFragment : Fragment() {
                 notificationPrefs.getBoolean("warning_$currentMonthYear", false)
     }
 
-    /**
-     * Check if notification has been sent this month
-     */
     private fun hasNotificationBeenSent(): Boolean {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
@@ -601,6 +678,8 @@ class homeFragment : Fragment() {
                             connection.requestMethod = "PUT"
                             connection.setRequestProperty("Content-Type", "application/json")
                             connection.doOutput = true
+                            connection.connectTimeout = 5000
+                            connection.readTimeout = 5000
 
                             val jsonObject = org.json.JSONObject().apply {
                                 put("name", updatedExpense.name)

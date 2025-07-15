@@ -98,6 +98,17 @@ class profileFragment : Fragment() {
             requireActivity().finish()
         }
     }
+    private fun getCurrencySymbol(currencyCode: Int): String {
+        return when (currencyCode) {
+            0 -> "LKR"  // Sri Lankan Rupee
+            1 -> "$"    // US Dollar
+            2 -> "€"    // Euro
+            3 -> "£"    // British Pound
+            4 -> "₹"    // Indian Rupee
+            5 -> "A$"   // Australian Dollar
+            else -> "LKR" // Default
+        }
+    }
 
     private fun loadSettings() {
         // Load all settings from backend
@@ -105,6 +116,7 @@ class profileFragment : Fragment() {
         loadBudgetSettingsFromBackend()
         loadNotificationSettingsFromBackend()
     }
+
     private fun loadUserProfileFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
@@ -143,6 +155,50 @@ class profileFragment : Fragment() {
         }
     }
 
+    private fun createDefaultBudgetForUser() {
+        val userId = getUserIdFromSession()
+        if (userId.isEmpty()) return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL("http://192.168.1.100:8082/api/budget/save")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+
+                val jsonBody = JSONObject().apply {
+                    put("userId", userId)
+                    put("budget", 0.0)
+                    put("currency", 0)
+                    put("notificationsEnabled", true)
+                    put("reminderEnabled", false)
+                    put("alertPercent", 80)
+                }
+
+                val outputStream = connection.outputStream
+                outputStream.write(jsonBody.toString().toByteArray())
+                outputStream.flush()
+                outputStream.close()
+
+                val responseCode = connection.responseCode
+                connection.disconnect()
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    // Default budget created successfully
+                    requireActivity().runOnUiThread {
+                        // Load the settings again to populate the UI
+                        loadBudgetSettingsFromBackend()
+                        loadNotificationSettingsFromBackend()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Handle error silently since this is a background operation
+            }
+        }
+    }
+
     private fun loadBudgetSettingsFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
@@ -163,12 +219,8 @@ class profileFragment : Fragment() {
 
                     // Check if response is empty or null
                     if (response.isNullOrEmpty() || response.trim().isEmpty()) {
-                        requireActivity().runOnUiThread {
-                            // Set default values if no budget found
-                            monthlyBudgetInput.setText("0.0")
-                            currencySpinner.setSelection(0) // Default to first currency (LKR)
-                            showSnackbar("No budget settings found. Please set your budget.")
-                        }
+                        // Create default budget and reload
+                        createDefaultBudgetForUser()
                         connection.disconnect()
                         return@launch
                     }
@@ -184,63 +236,29 @@ class profileFragment : Fragment() {
                             if (currencyIndex >= 0 && currencyIndex < currencies.size) {
                                 currencySpinner.setSelection(currencyIndex)
                             } else {
-                                currencySpinner.setSelection(0) // Default to first currency
+                                currencySpinner.setSelection(0)
                             }
                         }
                     } catch (jsonException: Exception) {
-                        // If JSON parsing fails, try to handle as plain text or error message
-                        requireActivity().runOnUiThread {
-                            if (response.contains("error", ignoreCase = true) ||
-                                response.contains("not found", ignoreCase = true)) {
-                                // Budget not found, set defaults
-                                monthlyBudgetInput.setText("0.0")
-                                currencySpinner.setSelection(0)
-                                showSnackbar("No budget settings found. Please set your budget.")
-                            } else {
-                                // Try to parse as plain number (if backend returns just the budget value)
-                                try {
-                                    val budget = response.trim().toDouble()
-                                    monthlyBudgetInput.setText(budget.toString())
-                                    currencySpinner.setSelection(0) // Default currency
-                                } catch (numberException: Exception) {
-                                    // If all parsing fails, set defaults
-                                    monthlyBudgetInput.setText("0.0")
-                                    currencySpinner.setSelection(0)
-                                    showSnackbar("Error parsing budget data. Please set your budget again.")
-                                }
-                            }
-                        }
+                        // If JSON parsing fails, create default budget
+                        createDefaultBudgetForUser()
                     }
                 } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    // Budget not found for user
-                    requireActivity().runOnUiThread {
-                        monthlyBudgetInput.setText("0.0")
-                        currencySpinner.setSelection(0)
-                        showSnackbar("No budget found. Please set your monthly budget.")
-                    }
+                    // Budget not found for user - create default
+                    createDefaultBudgetForUser()
                 } else {
-                    // Other HTTP errors
-                    val errorStream = connection.errorStream
-                    val errorResponse = errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
-
-                    requireActivity().runOnUiThread {
-                        monthlyBudgetInput.setText("0.0")
-                        currencySpinner.setSelection(0)
-                        showSnackbar("Failed to load budget settings: $errorResponse")
-                    }
+                    // Other HTTP errors - create default budget
+                    createDefaultBudgetForUser()
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    // Set default values on error
-                    monthlyBudgetInput.setText("0.0")
-                    currencySpinner.setSelection(0)
-                    showSnackbar("Error loading budget settings: ${e.message}")
-                }
+                // On network error, create default budget
+                createDefaultBudgetForUser()
             }
         }
     }
+
     private fun loadNotificationSettingsFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
@@ -261,14 +279,13 @@ class profileFragment : Fragment() {
 
                     // Check if response is empty or null
                     if (response.isNullOrEmpty() || response.trim().isEmpty()) {
+                        // Set default notification settings
                         requireActivity().runOnUiThread {
-                            // Set default notification settings
-                            budgetAlertsSwitch.isChecked = true // Default to enabled
-                            dailyReminderSwitch.isChecked = false // Default to disabled
-                            alertThresholdSeekBar.progress = 80 // Default to 80%
+                            budgetAlertsSwitch.isChecked = true
+                            dailyReminderSwitch.isChecked = false
+                            alertThresholdSeekBar.progress = 80
                             updateThresholdText(80)
-                            alertThresholdLayout.visibility = View.VISIBLE // Show since alerts are enabled by default
-                            showSnackbar("No notification settings found. Using defaults.")
+                            alertThresholdLayout.visibility = View.VISIBLE
                         }
                         connection.disconnect()
                         return@launch
@@ -291,69 +308,48 @@ class profileFragment : Fragment() {
                             alertThresholdLayout.visibility = if (notificationsEnabled) View.VISIBLE else View.GONE
                         }
                     } catch (jsonException: Exception) {
-                        // If JSON parsing fails, handle as error message or set defaults
+                        // If JSON parsing fails, set defaults
                         requireActivity().runOnUiThread {
-                            if (response.contains("error", ignoreCase = true) ||
-                                response.contains("not found", ignoreCase = true)) {
-                                // Notification settings not found, set defaults
-                                budgetAlertsSwitch.isChecked = true
-                                dailyReminderSwitch.isChecked = false
-                                alertThresholdSeekBar.progress = 80
-                                updateThresholdText(80)
-                                alertThresholdLayout.visibility = View.VISIBLE
-                                showSnackbar("No notification settings found. Using defaults.")
-                            } else {
-                                // Unexpected response format, set defaults
-                                budgetAlertsSwitch.isChecked = true
-                                dailyReminderSwitch.isChecked = false
-                                alertThresholdSeekBar.progress = 80
-                                updateThresholdText(80)
-                                alertThresholdLayout.visibility = View.VISIBLE
-                                showSnackbar("Error parsing notification settings. Using defaults.")
-                            }
+                            budgetAlertsSwitch.isChecked = true
+                            dailyReminderSwitch.isChecked = false
+                            alertThresholdSeekBar.progress = 80
+                            updateThresholdText(80)
+                            alertThresholdLayout.visibility = View.VISIBLE
                         }
                     }
                 } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    // Notification settings not found for user
+                    // Notification settings not found for user - set defaults
                     requireActivity().runOnUiThread {
                         budgetAlertsSwitch.isChecked = true
                         dailyReminderSwitch.isChecked = false
                         alertThresholdSeekBar.progress = 80
                         updateThresholdText(80)
                         alertThresholdLayout.visibility = View.VISIBLE
-                        showSnackbar("No notification settings found. Using defaults.")
                     }
                 } else {
-                    // Other HTTP errors
-                    val errorStream = connection.errorStream
-                    val errorResponse = errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
-
+                    // Other HTTP errors - set defaults
                     requireActivity().runOnUiThread {
-                        // Set default values on error
                         budgetAlertsSwitch.isChecked = true
                         dailyReminderSwitch.isChecked = false
                         alertThresholdSeekBar.progress = 80
                         updateThresholdText(80)
                         alertThresholdLayout.visibility = View.VISIBLE
-                        showSnackbar("Failed to load notification settings: $errorResponse")
                     }
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
+                // Set default values on error
                 requireActivity().runOnUiThread {
-                    // Set default values on error
                     budgetAlertsSwitch.isChecked = true
                     dailyReminderSwitch.isChecked = false
                     alertThresholdSeekBar.progress = 80
                     updateThresholdText(80)
                     alertThresholdLayout.visibility = View.VISIBLE
-                    showSnackbar("Error loading notification settings: ${e.message}")
                 }
             }
         }
     }
-
 
     private fun setupListeners() {
         // Notification switches
@@ -494,7 +490,6 @@ class profileFragment : Fragment() {
             showSnackbar("Please enter a valid number for budget")
         }
     }
-
 
     private fun saveNotificationSettings() {
         val userId = getUserIdFromSession()

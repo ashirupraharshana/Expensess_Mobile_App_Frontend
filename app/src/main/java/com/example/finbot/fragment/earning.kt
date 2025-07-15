@@ -67,7 +67,7 @@ class earningFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         loadEarnings()
-        fetchAndDisplayTotalEarnings()
+        fetchAndDisplayTotalSavings()
     }
 
     private fun loadEarnings() {
@@ -280,7 +280,56 @@ class earningFragment : Fragment() {
         }
     }
 
+    private fun fetchAndDisplayTotalSavings() {
+        val currency = sharedPrefsManager.getCurrency()
+        val userId = getUserIdFromSession()
 
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Fetch total earnings
+                val earningsUrl = URL("http://192.168.1.100:8082/api/earnings/total?userId=$userId")
+                val earningsConnection = earningsUrl.openConnection() as HttpURLConnection
+                earningsConnection.requestMethod = "GET"
+
+                val earningsResponseCode = earningsConnection.responseCode
+                var totalEarnings = 0.0
+
+                if (earningsResponseCode == HttpURLConnection.HTTP_OK) {
+                    val earningsResponse = earningsConnection.inputStream.bufferedReader().use { it.readText() }
+                    totalEarnings = earningsResponse.toDoubleOrNull() ?: 0.0
+                }
+                earningsConnection.disconnect()
+
+                // Fetch total expenses
+                val expenseUrl = URL("http://192.168.1.100:8082/api/expenses/total?userId=$userId")
+                val expenseConnection = expenseUrl.openConnection() as HttpURLConnection
+                expenseConnection.requestMethod = "GET"
+
+                val expenseResponseCode = expenseConnection.responseCode
+                var totalExpenses = 0.0
+
+                if (expenseResponseCode == HttpURLConnection.HTTP_OK) {
+                    val expenseResponse = expenseConnection.inputStream.bufferedReader().use { it.readText() }
+                    totalExpenses = expenseResponse.toDoubleOrNull() ?: 0.0
+                }
+                expenseConnection.disconnect()
+
+                // Calculate total savings (earnings - expenses)
+                val totalSavings = totalEarnings - totalExpenses
+
+                requireActivity().runOnUiThread {
+                    totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
+                    totalSavingsText.text = "$currency ${String.format("%.2f", totalSavings)}"
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error fetching savings: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
     private fun showDeleteEarningDialog(earning: Earning) {
         AlertDialog.Builder(requireContext())
             .setTitle("Delete Earning")
