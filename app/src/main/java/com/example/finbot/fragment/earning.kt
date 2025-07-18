@@ -76,7 +76,7 @@ class earningFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.101:8082/api/earnings/user/$userId")
+                val url = URL("http://192.168.1.100:8082/api/earnings/user/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
 
@@ -254,7 +254,7 @@ class earningFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.101:8082/api/earnings/total?userId=$userId")
+                val url = URL("http://192.168.1.100:8082/api/earnings/total?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
 
@@ -287,7 +287,7 @@ class earningFragment : Fragment() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // Fetch total earnings
-                val earningsUrl = URL("http://192.168.1.101:8082/api/earnings/total?userId=$userId")
+                val earningsUrl = URL("http://192.168.1.100:8082/api/earnings/total?userId=$userId")
                 val earningsConnection = earningsUrl.openConnection() as HttpURLConnection
                 earningsConnection.requestMethod = "GET"
 
@@ -301,7 +301,7 @@ class earningFragment : Fragment() {
                 earningsConnection.disconnect()
 
                 // Fetch total expenses
-                val expenseUrl = URL("http://192.168.1.101:8082/api/expenses/total?userId=$userId")
+                val expenseUrl = URL("http://192.168.1.100:8082/api/expenses/total?userId=$userId")
                 val expenseConnection = expenseUrl.openConnection() as HttpURLConnection
                 expenseConnection.requestMethod = "GET"
 
@@ -358,7 +358,7 @@ class earningFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.101:8082/api/earnings/add")
+                val url = URL("http://192.168.1.100:8082/api/earnings/add")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -404,7 +404,7 @@ class earningFragment : Fragment() {
     private fun updateEarning(oldEarning: Earning, newEarning: Earning) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.101:8082/api/earnings/update/${oldEarning.id}")
+                val url = URL("http://192.168.1.100:8082/api/earnings/update/${oldEarning.id}")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "PUT"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -450,7 +450,7 @@ class earningFragment : Fragment() {
     private fun deleteEarning(earning: Earning) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.1.101:8082/api/earnings/delete/${earning.id}")
+                val url = URL("http://192.168.1.100:8082/api/earnings/delete/${earning.id}")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "DELETE"
 

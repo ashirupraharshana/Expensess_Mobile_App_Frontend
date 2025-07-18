@@ -42,35 +42,11 @@
             android:paddingRight="40dp"
             android:layout_marginTop="25dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/nameInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:boxStrokeWidth="1dp"
-                app:boxStrokeColor="@color/black"
-                app:boxCornerRadiusTopStart="20dp"
-                app:boxCornerRadiusTopEnd="20dp"
-                app:boxCornerRadiusBottomStart="20dp"
-                app:boxCornerRadiusBottomEnd="20dp"
-                app:hintTextColor="@color/Grey"
-                app:boxBackgroundMode="outline">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/Name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Name"
-                    android:textColor="@color/black"
-                    android:inputType="text"
-                    android:textColorLink="#000000" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Email Field -->
+            <!-- Email Field-->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/emailInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 app:boxStrokeWidth="1dp"
                 app:boxStrokeColor="@color/black"
                 app:boxCornerRadiusTopStart="20dp"
@@ -87,6 +63,71 @@
                     android:hint="Email"
                     android:textColor="@color/black"
                     android:inputType="textEmailAddress"
+                    android:textColorLink="#000000" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+
+            <!-- Otp Field-->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/Otptextview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeColor="@color/black"
+                app:boxCornerRadiusTopStart="20dp"
+                app:boxCornerRadiusTopEnd="20dp"
+                app:boxCornerRadiusBottomStart="20dp"
+                app:boxCornerRadiusBottomEnd="20dp"
+                app:hintTextColor="@color/Grey"
+                app:boxBackgroundMode="outline">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/Otp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Otp"
+                    android:textColor="@color/black"
+                    android:inputType="text"
+                    android:textColorLink="#000000" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Otp Verefy btn Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/sentotpbtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bluebtn"
+                android:padding="16dp"
+                android:text="Send OTP"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+
+            <!-- Name Field  -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/nameInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeColor="@color/black"
+                app:boxCornerRadiusTopStart="20dp"
+                app:boxCornerRadiusTopEnd="20dp"
+                app:boxCornerRadiusBottomStart="20dp"
+                app:boxCornerRadiusBottomEnd="20dp"
+                app:hintTextColor="@color/Grey"
+                app:boxBackgroundMode="outline">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/Name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Name"
+                    android:textColor="@color/black"
+                    android:inputType="text"
                     android:textColorLink="#000000" />
             </com.google.android.material.textfield.TextInputLayout>
 
