@@ -47,7 +47,7 @@ class Register : AppCompatActivity() {
 
     private fun sendRegisterRequest(username: String, email: String, password: String) {
         try {
-            val url = URL("http://192.168.1.100:8082/api/users/register")
+            val url = URL("http://192.168.1.101:8082/api/users/register")
             val json = JSONObject().apply {
                 put("username", username)
                 put("email", email)

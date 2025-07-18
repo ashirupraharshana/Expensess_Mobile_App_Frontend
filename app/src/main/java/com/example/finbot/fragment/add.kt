@@ -119,7 +119,7 @@ class AddExpenseFragment : Fragment() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val url = URL("http://192.168.1.100:8082/api/expenses/add")
+                    val url = URL("http://192.168.1.101:8082/api/expenses/add")
                     val conn = url.openConnection() as HttpURLConnection
                     conn.requestMethod = "POST"
                     conn.setRequestProperty("Content-Type", "application/json")
