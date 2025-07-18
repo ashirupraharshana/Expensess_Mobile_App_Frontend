@@ -21,7 +21,7 @@ class GetStarted : AppCompatActivity() {
             return
         }
 
-        // ❌ Not logged in — show GetStarted UI
+
         setContentView(R.layout.activity_getstarted)
 
         val getStartedButton = findViewById<Button>(R.id.getStartedButton)

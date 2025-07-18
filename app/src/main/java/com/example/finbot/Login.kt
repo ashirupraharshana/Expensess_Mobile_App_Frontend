@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +25,7 @@ class Login : AppCompatActivity() {
         val passwordField = findViewById<EditText>(R.id.password)
         val loginButton = findViewById<Button>(R.id.login)
         val registerButton = findViewById<Button>(R.id.register)
+        val fpbtn = findViewById<TextView>(R.id.forgot_password)
 
         // Check if auto-fill data is passed from Register activity
         val autoFill = intent.getBooleanExtra("auto_fill", false)
@@ -51,6 +53,10 @@ class Login : AppCompatActivity() {
 
         registerButton.setOnClickListener {
             startActivity(Intent(this, Register::class.java))
+        }
+
+        fpbtn.setOnClickListener {
+            startActivity(Intent(this, ForgetPassword::class.java))
         }
     }
 
