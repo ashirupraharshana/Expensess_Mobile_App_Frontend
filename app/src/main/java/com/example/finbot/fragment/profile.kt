@@ -116,14 +116,12 @@ class profileFragment : Fragment() {
         loadBudgetSettingsFromBackend()
         loadNotificationSettingsFromBackend()
     }
-
     private fun loadUserProfileFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Updated URL to match your backend endpoint
                 val url = URL("http://192.168.1.100:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
@@ -133,27 +131,39 @@ class profileFragment : Fragment() {
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     val inputStream = connection.inputStream
                     val response = inputStream.bufferedReader().use { it.readText() }
-
-                    // Backend returns plain string, not JSON
                     val username = response.trim()
 
-                    requireActivity().runOnUiThread {
-                        userNameInput.setText(username)
+                    // Check if fragment is still attached before UI operations
+                    if (isAdded && context != null) {
+                        requireActivity().runOnUiThread {
+                            if (isAdded && ::userNameInput.isInitialized) {
+                                userNameInput.setText(username)
+                            }
+                        }
                     }
                 } else {
-                    requireActivity().runOnUiThread {
-                        showSnackbar("Failed to load user profile")
+                    if (isAdded && context != null) {
+                        requireActivity().runOnUiThread {
+                            if (isAdded) {
+                                showSnackbar("Failed to load user profile")
+                            }
+                        }
                     }
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    showSnackbar("Error loading profile: ${e.message}")
+                if (isAdded && context != null) {
+                    requireActivity().runOnUiThread {
+                        if (isAdded) {
+                            showSnackbar("Error loading profile: ${e.message}")
+                        }
+                    }
                 }
             }
         }
     }
+
 
     private fun createDefaultBudgetForUser() {
         val userId = getUserIdFromSession()
@@ -184,12 +194,12 @@ class profileFragment : Fragment() {
                 val responseCode = connection.responseCode
                 connection.disconnect()
 
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    // Default budget created successfully
+                if (responseCode == HttpURLConnection.HTTP_OK && isAdded && context != null) {
                     requireActivity().runOnUiThread {
-                        // Load the settings again to populate the UI
-                        loadBudgetSettingsFromBackend()
-                        loadNotificationSettingsFromBackend()
+                        if (isAdded) {
+                            loadBudgetSettingsFromBackend()
+                            loadNotificationSettingsFromBackend()
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -217,43 +227,40 @@ class profileFragment : Fragment() {
                     val inputStream = connection.inputStream
                     val response = inputStream.bufferedReader().use { it.readText() }
 
-                    // Check if response is empty or null
                     if (response.isNullOrEmpty() || response.trim().isEmpty()) {
-                        // Create default budget and reload
                         createDefaultBudgetForUser()
                         connection.disconnect()
                         return@launch
                     }
 
-                    // Try to parse as JSON
                     try {
                         val jsonObject = JSONObject(response)
                         val budget = jsonObject.optDouble("budget", 0.0)
                         val currencyIndex = jsonObject.optInt("currency", 0)
 
-                        requireActivity().runOnUiThread {
-                            monthlyBudgetInput.setText(budget.toString())
-                            if (currencyIndex >= 0 && currencyIndex < currencies.size) {
-                                currencySpinner.setSelection(currencyIndex)
-                            } else {
-                                currencySpinner.setSelection(0)
+                        if (isAdded && context != null) {
+                            requireActivity().runOnUiThread {
+                                if (isAdded && ::monthlyBudgetInput.isInitialized && ::currencySpinner.isInitialized) {
+                                    monthlyBudgetInput.setText(budget.toString())
+                                    if (currencyIndex >= 0 && currencyIndex < currencies.size) {
+                                        currencySpinner.setSelection(currencyIndex)
+                                    } else {
+                                        currencySpinner.setSelection(0)
+                                    }
+                                }
                             }
                         }
                     } catch (jsonException: Exception) {
-                        // If JSON parsing fails, create default budget
                         createDefaultBudgetForUser()
                     }
                 } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    // Budget not found for user - create default
                     createDefaultBudgetForUser()
                 } else {
-                    // Other HTTP errors - create default budget
                     createDefaultBudgetForUser()
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                // On network error, create default budget
                 createDefaultBudgetForUser()
             }
         }
@@ -277,70 +284,47 @@ class profileFragment : Fragment() {
                     val inputStream = connection.inputStream
                     val response = inputStream.bufferedReader().use { it.readText() }
 
-                    // Check if response is empty or null
                     if (response.isNullOrEmpty() || response.trim().isEmpty()) {
-                        // Set default notification settings
-                        requireActivity().runOnUiThread {
-                            budgetAlertsSwitch.isChecked = true
-                            dailyReminderSwitch.isChecked = false
-                            alertThresholdSeekBar.progress = 80
-                            updateThresholdText(80)
-                            alertThresholdLayout.visibility = View.VISIBLE
-                        }
+                        setDefaultNotificationSettings()
                         connection.disconnect()
                         return@launch
                     }
 
-                    // Try to parse as JSON
                     try {
                         val jsonObject = JSONObject(response)
                         val notificationsEnabled = jsonObject.optBoolean("notificationsEnabled", true)
                         val reminderEnabled = jsonObject.optBoolean("reminderEnabled", false)
                         val alertPercent = jsonObject.optInt("alertPercent", 80)
 
-                        requireActivity().runOnUiThread {
-                            budgetAlertsSwitch.isChecked = notificationsEnabled
-                            dailyReminderSwitch.isChecked = reminderEnabled
-                            alertThresholdSeekBar.progress = alertPercent
-                            updateThresholdText(alertPercent)
-
-                            // Update UI state based on settings
-                            alertThresholdLayout.visibility = if (notificationsEnabled) View.VISIBLE else View.GONE
+                        if (isAdded && context != null) {
+                            requireActivity().runOnUiThread {
+                                if (isAdded && ::budgetAlertsSwitch.isInitialized) {
+                                    budgetAlertsSwitch.isChecked = notificationsEnabled
+                                    dailyReminderSwitch.isChecked = reminderEnabled
+                                    alertThresholdSeekBar.progress = alertPercent
+                                    updateThresholdText(alertPercent)
+                                    alertThresholdLayout.visibility = if (notificationsEnabled) View.VISIBLE else View.GONE
+                                }
+                            }
                         }
                     } catch (jsonException: Exception) {
-                        // If JSON parsing fails, set defaults
-                        requireActivity().runOnUiThread {
-                            budgetAlertsSwitch.isChecked = true
-                            dailyReminderSwitch.isChecked = false
-                            alertThresholdSeekBar.progress = 80
-                            updateThresholdText(80)
-                            alertThresholdLayout.visibility = View.VISIBLE
-                        }
-                    }
-                } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    // Notification settings not found for user - set defaults
-                    requireActivity().runOnUiThread {
-                        budgetAlertsSwitch.isChecked = true
-                        dailyReminderSwitch.isChecked = false
-                        alertThresholdSeekBar.progress = 80
-                        updateThresholdText(80)
-                        alertThresholdLayout.visibility = View.VISIBLE
+                        setDefaultNotificationSettings()
                     }
                 } else {
-                    // Other HTTP errors - set defaults
-                    requireActivity().runOnUiThread {
-                        budgetAlertsSwitch.isChecked = true
-                        dailyReminderSwitch.isChecked = false
-                        alertThresholdSeekBar.progress = 80
-                        updateThresholdText(80)
-                        alertThresholdLayout.visibility = View.VISIBLE
-                    }
+                    setDefaultNotificationSettings()
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Set default values on error
-                requireActivity().runOnUiThread {
+                setDefaultNotificationSettings()
+            }
+        }
+    }
+
+    private fun setDefaultNotificationSettings() {
+        if (isAdded && context != null) {
+            requireActivity().runOnUiThread {
+                if (isAdded && ::budgetAlertsSwitch.isInitialized) {
                     budgetAlertsSwitch.isChecked = true
                     dailyReminderSwitch.isChecked = false
                     alertThresholdSeekBar.progress = 80
@@ -350,7 +334,6 @@ class profileFragment : Fragment() {
             }
         }
     }
-
     private fun setupListeners() {
         // Notification switches
         budgetAlertsSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -390,7 +373,6 @@ class profileFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Updated URL to match your preferred endpoint
                 val url = URL("http://192.168.1.100:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "PUT"
@@ -408,17 +390,25 @@ class profileFragment : Fragment() {
 
                 val responseCode = connection.responseCode
 
-                requireActivity().runOnUiThread {
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        Toast.makeText(requireContext(), "Username updated successfully!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(requireContext(), "Failed to update username", Toast.LENGTH_SHORT).show()
+                if (isAdded && context != null) {
+                    requireActivity().runOnUiThread {
+                        if (isAdded && context != null) {
+                            if (responseCode == HttpURLConnection.HTTP_OK) {
+                                Toast.makeText(requireContext(), "Username updated successfully!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(requireContext(), "Failed to update username", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && context != null) {
+                    requireActivity().runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
@@ -448,7 +438,6 @@ class profileFragment : Fragment() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    // First update budget
                     val budgetUrl = URL("http://192.168.1.100:8082/api/budget/update/budget?userId=$userId&budget=$budget")
                     val budgetConnection = budgetUrl.openConnection() as HttpURLConnection
                     budgetConnection.requestMethod = "PUT"
@@ -458,7 +447,6 @@ class profileFragment : Fragment() {
                     budgetConnection.disconnect()
 
                     if (budgetResponseCode == HttpURLConnection.HTTP_OK) {
-                        // Then update currency
                         val currencyUrl = URL("http://192.168.1.100:8082/api/budget/update/currency?userId=$userId&currency=$currencyIndex")
                         val currencyConnection = currencyUrl.openConnection() as HttpURLConnection
                         currencyConnection.requestMethod = "PUT"
@@ -467,22 +455,34 @@ class profileFragment : Fragment() {
                         val currencyResponseCode = currencyConnection.responseCode
                         currencyConnection.disconnect()
 
-                        requireActivity().runOnUiThread {
-                            if (currencyResponseCode == HttpURLConnection.HTTP_OK) {
-                                showSnackbar("Budget settings saved successfully")
-                            } else {
-                                showSnackbar("Failed to save currency setting")
+                        if (isAdded && context != null) {
+                            requireActivity().runOnUiThread {
+                                if (isAdded) {
+                                    if (currencyResponseCode == HttpURLConnection.HTTP_OK) {
+                                        showSnackbar("Budget settings saved successfully")
+                                    } else {
+                                        showSnackbar("Failed to save currency setting")
+                                    }
+                                }
                             }
                         }
                     } else {
-                        requireActivity().runOnUiThread {
-                            showSnackbar("Failed to save budget setting")
+                        if (isAdded && context != null) {
+                            requireActivity().runOnUiThread {
+                                if (isAdded) {
+                                    showSnackbar("Failed to save budget setting")
+                                }
+                            }
                         }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    requireActivity().runOnUiThread {
-                        showSnackbar("Error: ${e.message}")
+                    if (isAdded && context != null) {
+                        requireActivity().runOnUiThread {
+                            if (isAdded) {
+                                showSnackbar("Error: ${e.message}")
+                            }
+                        }
                     }
                 }
             }
@@ -512,30 +512,44 @@ class profileFragment : Fragment() {
                 val responseCode = connection.responseCode
                 connection.disconnect()
 
-                requireActivity().runOnUiThread {
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        showSnackbar("Notification settings saved")
+                if (isAdded && context != null) {
+                    requireActivity().runOnUiThread {
+                        if (isAdded && ::notificationHelper.isInitialized) {
+                            if (responseCode == HttpURLConnection.HTTP_OK) {
+                                showSnackbar("Notification settings saved")
 
-                        // Handle local notification scheduling
-                        if (dailyReminderSwitch.isChecked) {
-                            notificationHelper.scheduleDailyReminder()
-                        } else {
-                            notificationHelper.cancelDailyReminder()
+                                if (dailyReminderSwitch.isChecked) {
+                                    notificationHelper.scheduleDailyReminder()
+                                } else {
+                                    notificationHelper.cancelDailyReminder()
+                                }
+                            } else {
+                                showSnackbar("Failed to save notification settings")
+                            }
                         }
-                    } else {
-                        showSnackbar("Failed to save notification settings")
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    showSnackbar("Error: ${e.message}")
+                if (isAdded && context != null) {
+                    requireActivity().runOnUiThread {
+                        if (isAdded) {
+                            showSnackbar("Error: ${e.message}")
+                        }
+                    }
                 }
             }
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Cancel any ongoing coroutines if needed
+    }
+
     private fun showSnackbar(message: String) {
-        SnackbarUtil.showSuccess(requireView(), message, 3000)
+        if (isAdded && view != null) {
+            SnackbarUtil.showSuccess(requireView(), message, 3000)
+        }
     }
 }

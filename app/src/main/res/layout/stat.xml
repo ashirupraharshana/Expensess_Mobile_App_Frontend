@@ -19,7 +19,8 @@
             android:gravity="center"
             android:textSize="28sp"
             android:textColor="@color/black"
-            android:fontFamily="@font/google_sans_bold"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
             android:layout_marginBottom="16dp"/>
 
         <!-- Period Selection Chips -->
@@ -94,7 +95,9 @@
                         android:text="LKR 245000.00"
                         android:textSize="22sp"
                         android:textColor="#FFFFFF"
-                        android:fontFamily="@font/google_sans_bold" />
+                        android:fontFamily="sans-serif"
+                        android:textStyle="bold"
+                        />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             <androidx.cardview.widget.CardView
@@ -123,7 +126,8 @@
                         android:text="Food"
                         android:textSize="22sp"
                         android:textColor="#FFFFFF"
-                        android:fontFamily="@font/google_sans_bold" />
+                        android:fontFamily="sans-serif"
+                        android:textStyle="bold"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
@@ -148,7 +152,8 @@
                     android:text="Expense Distribution"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <com.github.mikephil.charting.charts.PieChart
@@ -192,7 +197,8 @@
                     android:text="Spending Trends"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <com.github.mikephil.charting.charts.LineChart
@@ -222,7 +228,8 @@
                     android:text="Earnings Trends"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <com.github.mikephil.charting.charts.LineChart

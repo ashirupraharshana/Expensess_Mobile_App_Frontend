@@ -113,7 +113,7 @@ class homeFragment : Fragment() {
         return sharedPref.getString("user_id", "") ?: ""
     }
 
-    // New method to fetch currency from backend
+    // Updated fetchCurrencyFromBackend method
     private fun fetchCurrencyFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) {
@@ -144,41 +144,69 @@ class homeFragment : Fragment() {
                     // Get currency string from mapping
                     val currencyString = currencyMap[currencyId] ?: "LKR"
 
-                    // Update SharedPreferences with fetched currency
-                    requireActivity().runOnUiThread {
-                        sharedPrefsManager.setCurrency(currencyString)
-                        // Refresh the UI with new currency
-                        updateBudgetInfo()
-                        fetchAndDisplayTotalExpenses()
+                    // Update SharedPreferences with fetched currency - check fragment lifecycle
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null) return@runOnUiThread
+
+                            try {
+                                sharedPrefsManager.setCurrency(currencyString)
+                                // Refresh the UI with new currency
+                                updateBudgetInfo()
+                                fetchAndDisplayTotalExpenses()
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during currency update: ${e.message}")
+                            }
+                        }
                     }
                 } else {
                     // Handle error - use default currency
-                    requireActivity().runOnUiThread {
-                        val defaultCurrency = sharedPrefsManager.getCurrency()
-                        if (defaultCurrency.isEmpty()) {
-                            sharedPrefsManager.setCurrency("LKR")
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null) return@runOnUiThread
+
+                            try {
+                                val defaultCurrency = sharedPrefsManager.getCurrency()
+                                if (defaultCurrency.isEmpty()) {
+                                    sharedPrefsManager.setCurrency("LKR")
+                                }
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during default currency set: ${e.message}")
+                            }
                         }
                     }
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    // On error, use existing currency or default to LKR
-                    val currentCurrency = sharedPrefsManager.getCurrency()
-                    if (currentCurrency.isEmpty()) {
-                        sharedPrefsManager.setCurrency("LKR")
+                if (isAdded && context != null) {
+                    val currentActivity = activity
+                    currentActivity?.runOnUiThread {
+                        if (!isAdded || context == null) return@runOnUiThread
+
+                        try {
+                            // On error, use existing currency or default to LKR
+                            val currentCurrency = sharedPrefsManager.getCurrency()
+                            if (currentCurrency.isEmpty()) {
+                                sharedPrefsManager.setCurrency("LKR")
+                            }
+                        } catch (ex: IllegalStateException) {
+                            println("Fragment detached during error currency handling: ${ex.message}")
+                        }
                     }
                 }
             }
         }
     }
-
-    // Add this new method to fetch username from backend
+    // Updated loadUsernameFromBackend method
     private fun loadUsernameFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) {
-            welcomeNote.text = "Welcome, User"
+            if (isAdded && ::welcomeNote.isInitialized) {
+                welcomeNote.text = "Welcome, User"
+            }
             return
         }
 
@@ -199,25 +227,49 @@ class homeFragment : Fragment() {
                     // Backend returns plain string, not JSON
                     val username = response.trim()
 
-                    requireActivity().runOnUiThread {
-                        welcomeNote.text = "Welcome, $username"
-                        // Also update SharedPreferences for future use
-                        val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
-                        sharedPref.edit().putString("username", username).apply()
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null) return@runOnUiThread
+
+                            try {
+                                welcomeNote.text = "Welcome, $username"
+                                // Also update SharedPreferences for future use
+                                val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
+                                sharedPref.edit().putString("username", username).apply()
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during username update: ${e.message}")
+                            }
+                        }
                     }
                 } else {
-                    requireActivity().runOnUiThread {
-                        welcomeNote.text = "Welcome, User"
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null || !::welcomeNote.isInitialized) return@runOnUiThread
+                            welcomeNote.text = "Welcome, User"
+                        }
                     }
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    // Fallback to SharedPreferences if network fails
-                    val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
-                    val username = sharedPref.getString("username", "User")
-                    welcomeNote.text = "Welcome, $username"
+                if (isAdded && context != null) {
+                    val currentActivity = activity
+                    currentActivity?.runOnUiThread {
+                        if (!isAdded || context == null) return@runOnUiThread
+
+                        try {
+                            // Fallback to SharedPreferences if network fails
+                            val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
+                            val username = sharedPref.getString("username", "User")
+                            if (::welcomeNote.isInitialized) {
+                                welcomeNote.text = "Welcome, $username"
+                            }
+                        } catch (ex: IllegalStateException) {
+                            println("Fragment detached during fallback username: ${ex.message}")
+                        }
+                    }
                 }
             }
         }
@@ -242,24 +294,51 @@ class homeFragment : Fragment() {
 
                     val totalExpenses = response.toDoubleOrNull() ?: 0.0
 
-                    requireActivity().runOnUiThread {
-                        totalExpenseTextView.text = "$currency ${String.format("%.2f", totalExpenses)}"
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null || !::totalExpenseTextView.isInitialized) return@runOnUiThread
+
+                            try {
+                                totalExpenseTextView.text = "$currency ${String.format("%.2f", totalExpenses)}"
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during total expenses update: ${e.message}")
+                            }
+                        }
                     }
                 } else {
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Failed to fetch total", Toast.LENGTH_SHORT).show()
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null) return@runOnUiThread
+
+                            try {
+                                Toast.makeText(requireContext(), "Failed to fetch total", Toast.LENGTH_SHORT).show()
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during error toast: ${e.message}")
+                            }
+                        }
                     }
                 }
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && context != null) {
+                    val currentActivity = activity
+                    currentActivity?.runOnUiThread {
+                        if (!isAdded || context == null) return@runOnUiThread
+
+                        try {
+                            Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        } catch (ex: IllegalStateException) {
+                            println("Fragment detached during error handling: ${ex.message}")
+                        }
+                    }
                 }
             }
         }
     }
-
+    // Updated loadExpenses method
     private fun loadExpenses() {
         val userId = getUserIdFromSession()
 
@@ -296,36 +375,62 @@ class homeFragment : Fragment() {
                         expenses.add(expense)
                     }
 
-                    requireActivity().runOnUiThread {
-                        if (expenses.isEmpty()) {
-                            recyclerView.visibility = View.GONE
-                            emptyStateTextView.visibility = View.VISIBLE
-                        } else {
-                            recyclerView.visibility = View.VISIBLE
-                            emptyStateTextView.visibility = View.GONE
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null) return@runOnUiThread
 
-                            adapter = ExpenseAdapter(requireContext(), expenses) { expense ->
-                                showExpenseOptionsDialog(expense)
+                            try {
+                                if (expenses.isEmpty()) {
+                                    recyclerView.visibility = View.GONE
+                                    emptyStateTextView.visibility = View.VISIBLE
+                                } else {
+                                    recyclerView.visibility = View.VISIBLE
+                                    emptyStateTextView.visibility = View.GONE
+
+                                    adapter = ExpenseAdapter(requireContext(), expenses) { expense ->
+                                        showExpenseOptionsDialog(expense)
+                                    }
+                                    recyclerView.adapter = adapter
+                                }
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during expenses UI update: ${e.message}")
                             }
-                            recyclerView.adapter = adapter
                         }
                     }
 
                 } else {
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Failed to load expenses", Toast.LENGTH_SHORT).show()
+                    if (isAdded && context != null) {
+                        val currentActivity = activity
+                        currentActivity?.runOnUiThread {
+                            if (!isAdded || context == null) return@runOnUiThread
+
+                            try {
+                                Toast.makeText(requireContext(), "Failed to load expenses", Toast.LENGTH_SHORT).show()
+                            } catch (e: IllegalStateException) {
+                                println("Fragment detached during error toast: ${e.message}")
+                            }
+                        }
                     }
                 }
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && context != null) {
+                    val currentActivity = activity
+                    currentActivity?.runOnUiThread {
+                        if (!isAdded || context == null) return@runOnUiThread
+
+                        try {
+                            Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        } catch (ex: IllegalStateException) {
+                            println("Fragment detached during error handling: ${ex.message}")
+                        }
+                    }
                 }
             }
         }
     }
-
     private fun updateBudgetInfo() {
         val currency = sharedPrefsManager.getCurrency()
         val userId = getUserIdFromSession()
@@ -383,68 +488,77 @@ class homeFragment : Fragment() {
                 val alertPercent = sharedPrefsManager.getBudgetAlertPercent()
                 val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
 
-                if (notificationsEnabled && budget > 0) {
-                    when {
-                        percentUsed >= 100 -> {
-                            requireActivity().runOnUiThread {
-                                // Always show notification when budget is exceeded
-                                showBudgetExceededNotification(
-                                    title = "Budget Exceeded!",
-                                    message = "You have exceeded your monthly budget by ${percentUsed - 100}%! Current spending: $currency ${String.format("%.2f", totalExpenses)}"
-                                )
-                            }
-                        }
-                        percentUsed >= alertPercent -> {
-                            requireActivity().runOnUiThread {
-                                showBudgetNotificationOnce(
-                                    title = "Budget Alert",
-                                    message = "You have used $percentUsed% of your monthly budget ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
-                                )
-                            }
-                        }
-                        percentUsed >= 90 -> {
-                            requireActivity().runOnUiThread {
-                                showBudgetNotificationOnce(
-                                    title = "Budget Warning",
-                                    message = "You're approaching your budget limit! $percentUsed% used ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
-                                )
-                            }
-                        }
-                    }
-                }
+                // Check if fragment is still attached before updating UI
+                if (isAdded && context != null) {
+                    val currentActivity = activity
+                    if (currentActivity != null) {
+                        currentActivity.runOnUiThread {
+                            // Double-check fragment is still attached
+                            if (!isAdded || context == null) return@runOnUiThread
 
-                requireActivity().runOnUiThread {
-                    // Update UI
-                    totalExpenseTextView.text = "$currency ${String.format("%.2f", totalExpenses)}"
-                    budgetTextView.text = "Budget: $currency ${String.format("%.2f", budget)} ($percentUsed% used)"
-                    progressBar.progress = percentUsed
-                    progressPercentage.text = "$percentUsed%"
-                    spentPercentText.text = "Spent: $percentUsed%"
-                    limitText.text = "of $currency ${String.format("%.2f", budget)} limit"
+                            if (notificationsEnabled && budget > 0) {
+                                when {
+                                    percentUsed >= 100 -> {
+                                        // Always show notification when budget is exceeded
+                                        showBudgetExceededNotification(
+                                            title = "Budget Exceeded!",
+                                            message = "You have exceeded your monthly budget by ${percentUsed - 100}%! Current spending: $currency ${String.format("%.2f", totalExpenses)}"
+                                        )
+                                    }
+                                    percentUsed >= alertPercent -> {
+                                        showBudgetNotificationOnce(
+                                            title = "Budget Alert",
+                                            message = "You have used $percentUsed% of your monthly budget ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
+                                        )
+                                    }
+                                    percentUsed >= 90 -> {
+                                        showBudgetNotificationOnce(
+                                            title = "Budget Warning",
+                                            message = "You're approaching your budget limit! $percentUsed% used ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
+                                        )
+                                    }
+                                }
+                            }
 
-                    // Enhanced color changes with more granular states
-                    when {
-                        percentUsed >= 100 -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.transport))
-                            progressBar.setIndicatorColor(requireContext().getColor(R.color.transport))
-                            limitText.setTextColor(requireContext().getColor(R.color.transport))
-                            progressPercentage.setTextColor(requireContext().getColor(R.color.white))
-                        }
-                        percentUsed >= 90 -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.food))
-                            progressBar.setIndicatorColor(requireContext().getColor(R.color.food))
-                            limitText.setTextColor(requireContext().getColor(R.color.food))
-                            progressPercentage.setTextColor(requireContext().getColor(R.color.food))
-                        }
-                        percentUsed >= 75 -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.food))
-                            progressBar.setIndicatorColor(requireContext().getColor(R.color.food))
-                        }
-                        else -> {
-                            budgetTextView.setTextColor(requireContext().getColor(R.color.food))
-                            progressBar.setIndicatorColor(requireContext().getColor(R.color.Blue))
-                            limitText.setTextColor(requireContext().getColor(R.color.Blue))
-                            progressPercentage.setTextColor(requireContext().getColor(R.color.black))
+                            // Update UI only if fragment is still attached
+                            try {
+                                totalExpenseTextView.text = "$currency ${String.format("%.2f", totalExpenses)}"
+                                budgetTextView.text = "Budget: $currency ${String.format("%.2f", budget)} ($percentUsed% used)"
+                                progressBar.progress = percentUsed
+                                progressPercentage.text = "$percentUsed%"
+                                spentPercentText.text = "Spent: $percentUsed%"
+                                limitText.text = "of $currency ${String.format("%.2f", budget)} limit"
+
+                                // Enhanced color changes with more granular states
+                                val context = requireContext()
+                                when {
+                                    percentUsed >= 100 -> {
+                                        budgetTextView.setTextColor(context.getColor(R.color.transport))
+                                        progressBar.setIndicatorColor(context.getColor(R.color.transport))
+                                        limitText.setTextColor(context.getColor(R.color.transport))
+                                        progressPercentage.setTextColor(context.getColor(R.color.white))
+                                    }
+                                    percentUsed >= 90 -> {
+                                        budgetTextView.setTextColor(context.getColor(R.color.food))
+                                        progressBar.setIndicatorColor(context.getColor(R.color.food))
+                                        limitText.setTextColor(context.getColor(R.color.food))
+                                        progressPercentage.setTextColor(context.getColor(R.color.food))
+                                    }
+                                    percentUsed >= 75 -> {
+                                        budgetTextView.setTextColor(context.getColor(R.color.food))
+                                        progressBar.setIndicatorColor(context.getColor(R.color.food))
+                                    }
+                                    else -> {
+                                        budgetTextView.setTextColor(context.getColor(R.color.food))
+                                        progressBar.setIndicatorColor(context.getColor(R.color.Blue))
+                                        limitText.setTextColor(context.getColor(R.color.Blue))
+                                        progressPercentage.setTextColor(context.getColor(R.color.black))
+                                    }
+                                }
+                            } catch (e: IllegalStateException) {
+                                // Fragment is no longer attached, ignore UI updates
+                                println("Fragment detached during UI update: ${e.message}")
+                            }
                         }
                     }
                 }
@@ -455,16 +569,27 @@ class homeFragment : Fragment() {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error loading budget: ${e.message}", Toast.LENGTH_SHORT).show()
+                // Check if fragment is still attached before showing error
+                if (isAdded && context != null) {
+                    val currentActivity = activity
+                    currentActivity?.runOnUiThread {
+                        if (!isAdded || context == null) return@runOnUiThread
 
-                    // Set default values in case of error
-                    val currency = sharedPrefsManager.getCurrency()
-                    budgetTextView.text = "Budget: $currency 0.00 (0% used)"
-                    progressBar.progress = 0
-                    progressPercentage.text = "0%"
-                    spentPercentText.text = "Spent: 0%"
-                    limitText.text = "of $currency 0.00 limit"
+                        try {
+                            Toast.makeText(requireContext(), "Error loading budget: ${e.message}", Toast.LENGTH_SHORT).show()
+
+                            // Set default values in case of error
+                            val currency = sharedPrefsManager.getCurrency()
+                            budgetTextView.text = "Budget: $currency 0.00 (0% used)"
+                            progressBar.progress = 0
+                            progressPercentage.text = "0%"
+                            spentPercentText.text = "Spent: 0%"
+                            limitText.text = "of $currency 0.00 limit"
+                        } catch (ex: IllegalStateException) {
+                            // Fragment is no longer attached, ignore
+                            println("Fragment detached during error handling: ${ex.message}")
+                        }
+                    }
                 }
             }
         }

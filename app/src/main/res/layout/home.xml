@@ -34,7 +34,7 @@
                     android:textSize="28sp"
                     android:textColor="@color/white"
                     android:textStyle="bold"
-                    android:fontFamily="@font/google_sans_bold"/>
+                    android:fontFamily="sans-serif"/>
 
                 <!-- Amount Display -->
                 <LinearLayout
@@ -50,7 +50,8 @@
                         android:text="LKR 25,000.00"
                         android:textSize="36sp"
                         android:textColor="@color/white"
-                        android:fontFamily="@font/google_sans_bold"/>
+                        android:fontFamily="sans-serif"
+                        android:textStyle="bold"/>
 
                     <TextView
                         android:id="@+id/budgetText"
@@ -60,7 +61,7 @@
                         android:textSize="14sp"
                         android:textColor="@color/white"
                         android:layout_marginTop="4dp"
-                        android:fontFamily="@font/google_sans_regular"/>
+                        android:fontFamily="sans-serif"/>
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -85,14 +86,14 @@
                     android:text="Spent: 65%"
                     android:textSize="16sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_medium"/>
+                    android:fontFamily="sans-serif-medium"/>
 
                 <TextView
                     android:id="@+id/limitText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:fontFamily="@font/google_sans_regular"
+                    android:fontFamily="sans-serif"
                     android:text="of LKR 30,000 limit"
                     android:textColor="@color/Blue"
                     android:textSize="16sp" />
@@ -126,7 +127,8 @@
                     android:text="65%"
                     android:textSize="12sp"
                     android:textColor="@color/white"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:padding="4dp"
                     android:backgroundTint="@color/Blue"/>
@@ -141,7 +143,7 @@
             android:textSize="20sp"
             android:textColor="@color/black"
             android:textStyle="bold"
-            android:fontFamily="@font/google_sans_bold"
+            android:fontFamily="sans-serif"
             android:layout_marginBottom="16dp"/>
 
         <!-- Categories Horizontal Scroll -->
@@ -328,7 +330,7 @@
             android:textSize="20sp"
             android:textColor="@color/black"
             android:textStyle="bold"
-            android:fontFamily="@font/google_sans_bold"
+            android:fontFamily="sans-serif"
             android:layout_marginBottom="16dp"/>
             
         <!-- Empty state message -->

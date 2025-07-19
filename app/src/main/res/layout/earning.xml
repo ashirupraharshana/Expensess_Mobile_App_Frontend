@@ -19,7 +19,8 @@
             android:text="Earnings"
             android:textSize="28sp"
             android:textColor="@color/black"
-            android:fontFamily="@font/google_sans_bold"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
             android:gravity="center"
             android:layout_marginBottom="16dp" />
 
@@ -49,7 +50,9 @@
                     android:text="LKR 500,000.00"
                     android:textSize="22sp"
                     android:textColor="#FFFFFF"
-                    android:fontFamily="@font/google_sans_bold" />
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
+                    />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -79,7 +82,9 @@
                     android:text="LKR 200,000.00"
                     android:textSize="22sp"
                     android:textColor="#FFFFFF"
-                    android:fontFamily="@font/google_sans_bold" />
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
+                    />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -103,7 +108,7 @@
             android:textSize="20sp"
             android:textColor="@color/black"
             android:textStyle="bold"
-            android:fontFamily="@font/google_sans_bold"
+            android:fontFamily="sans-serif"
             android:layout_marginBottom="16dp" />
 
         <!-- Empty state message -->

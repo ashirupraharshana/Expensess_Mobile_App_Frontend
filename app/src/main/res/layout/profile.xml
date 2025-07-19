@@ -19,7 +19,8 @@
             android:text="Settings"
             android:textSize="28sp"
             android:textColor="@color/black"
-            android:fontFamily="@font/google_sans_bold"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
             android:gravity="center"
             android:layout_marginBottom="16dp" />
 
@@ -42,7 +43,8 @@
                     android:text="User Profile"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <EditText
@@ -86,7 +88,8 @@
                     android:text="Budget Settings"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <EditText
@@ -138,7 +141,8 @@
                     android:text="Notification Settings"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <!-- Budget Alerts Toggle -->
@@ -241,7 +245,8 @@
                     android:text="Backup &amp; Restore"
                     android:textSize="18sp"
                     android:textColor="@color/black"
-                    android:fontFamily="@font/google_sans_bold"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
                 <Button

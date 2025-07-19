@@ -35,7 +35,7 @@ class earningFragment : Fragment() {
     private lateinit var totalSavingsText: TextView
     private lateinit var noEarningsText: TextView
     private lateinit var sharedPrefsManager: SharedPreferencesManager
-    
+
     private lateinit var earningsAdapter: EarningsAdapter
 
     override fun onCreateView(
@@ -63,7 +63,7 @@ class earningFragment : Fragment() {
 
         return view
     }
-    
+
     override fun onResume() {
         super.onResume()
         loadEarnings()
@@ -71,6 +71,9 @@ class earningFragment : Fragment() {
     }
 
     private fun loadEarnings() {
+        // Check if fragment is attached before starting async operation
+        if (!isAdded || context == null) return
+
         val userId = getUserIdFromSession()
         val currency = sharedPrefsManager.getCurrency()
 
@@ -100,48 +103,63 @@ class earningFragment : Fragment() {
                         earningsList.add(earning)
                     }
 
-                    requireActivity().runOnUiThread {
-                        if (earningsList.isEmpty()) {
-                            earningsRecyclerView.visibility = View.GONE
-                            noEarningsText.visibility = View.VISIBLE
-                        } else {
-                            earningsRecyclerView.visibility = View.VISIBLE
-                            noEarningsText.visibility = View.GONE
-                            earningsAdapter = EarningsAdapter(
-                                requireContext(),
-                                earningsList,
-                                { earning -> showEditEarningDialog(earning) },
-                                { earning -> showDeleteEarningDialog(earning) }
-                            )
-                            earningsRecyclerView.adapter = earningsAdapter
+                    // Check if fragment is still attached before updating UI
+                    if (isAdded && activity != null && context != null) {
+                        activity?.runOnUiThread {
+                            // Double-check before accessing views
+                            if (isAdded && context != null) {
+                                if (earningsList.isEmpty()) {
+                                    earningsRecyclerView.visibility = View.GONE
+                                    noEarningsText.visibility = View.VISIBLE
+                                } else {
+                                    earningsRecyclerView.visibility = View.VISIBLE
+                                    noEarningsText.visibility = View.GONE
+                                    earningsAdapter = EarningsAdapter(
+                                        requireContext(),
+                                        earningsList,
+                                        { earning -> showEditEarningDialog(earning) },
+                                        { earning -> showDeleteEarningDialog(earning) }
+                                    )
+                                    earningsRecyclerView.adapter = earningsAdapter
+                                }
+
+                                // Calculate total
+                                val totalEarnings = earningsList.sumOf { it.amount }
+                                totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
+
+                                val totalExpenses = sharedPrefsManager.getCurrentMonthExpenses().toDouble()
+                                val totalSavings = totalEarnings - totalExpenses
+                                totalSavingsText.text = "$currency ${String.format("%.2f", totalSavings)}"
+                            }
                         }
-
-                        // Calculate total
-                        val totalEarnings = earningsList.sumOf { it.amount }
-                        totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
-
-                        val totalExpenses = sharedPrefsManager.getCurrentMonthExpenses().toDouble()
-                        val totalSavings = totalEarnings - totalExpenses
-                        totalSavingsText.text = "$currency ${String.format("%.2f", totalSavings)}"
                     }
 
                 } else {
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Failed to load earnings", Toast.LENGTH_SHORT).show()
+                    if (isAdded && activity != null && context != null) {
+                        activity?.runOnUiThread {
+                            if (isAdded && context != null) {
+                                Toast.makeText(context, "Failed to load earnings", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
     }
 
-
     private fun showAddEarningDialog() {
+        if (!isAdded || context == null) return
+
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_earning, null)
         val categoryInput = dialogView.findViewById<EditText>(R.id.categoryInput)
         val amountInput = dialogView.findViewById<EditText>(R.id.amountInput)
@@ -152,12 +170,14 @@ class earningFragment : Fragment() {
         // Set up calendar for date selection
         val calendar = Calendar.getInstance()
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
+
         // Set default date
         dateInput.text = dateFormatter.format(calendar.time)
-        
+
         // Setup date picker when clicking on the date field
         dateInput.setOnClickListener {
+            if (!isAdded || context == null) return@setOnClickListener
+
             val year = calendar.get(Calendar.YEAR)
             val month = calendar.get(Calendar.MONTH)
             val day = calendar.get(Calendar.DAY_OF_MONTH)
@@ -179,9 +199,13 @@ class earningFragment : Fragment() {
 
                 if (category.isNotEmpty() && amount != null) {
                     addEarning(category, amount, date)
-                    Toast.makeText(requireContext(), "Earning added successfully!", Toast.LENGTH_SHORT).show()
+                    if (isAdded && context != null) {
+                        Toast.makeText(context, "Earning added successfully!", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
-                    Toast.makeText(requireContext(), "Please enter valid details.", Toast.LENGTH_SHORT).show()
+                    if (isAdded && context != null) {
+                        Toast.makeText(context, "Please enter valid details.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -189,23 +213,25 @@ class earningFragment : Fragment() {
     }
 
     private fun showEditEarningDialog(earning: Earning) {
+        if (!isAdded || context == null) return
+
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_earning, null)
         val categoryInput = dialogView.findViewById<EditText>(R.id.categoryInput)
         val amountInput = dialogView.findViewById<EditText>(R.id.amountInput)
         val dateInput = dialogView.findViewById<TextView>(R.id.dateInput)
-        
+
         // Pre-fill with existing values
         categoryInput.setText(earning.category)
         amountInput.setText(earning.amount.toString())
         dateInput.text = earning.date
-        
+
         dateInput.setTextColor(resources.getColor(R.color.black, null))
         amountInput.setTextColor(resources.getColor(R.color.black, null))
-        
+
         // Set up calendar for date selection
         val calendar = Calendar.getInstance()
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
+
         try {
             // Parse existing date
             val date = dateFormatter.parse(earning.date)
@@ -215,9 +241,11 @@ class earningFragment : Fragment() {
         } catch (e: Exception) {
             // Use current date if parsing fails
         }
-        
+
         // Setup date picker when clicking on the date field
         dateInput.setOnClickListener {
+            if (!isAdded || context == null) return@setOnClickListener
+
             val year = calendar.get(Calendar.YEAR)
             val month = calendar.get(Calendar.MONTH)
             val day = calendar.get(Calendar.DAY_OF_MONTH)
@@ -240,15 +268,22 @@ class earningFragment : Fragment() {
                 if (category.isNotEmpty() && amount != null) {
                     val updatedEarning = Earning(earning.id, category, amount, date, earning.time, earning.userId)
                     updateEarning(earning, updatedEarning)
-                    Toast.makeText(requireContext(), "Earning updated!", Toast.LENGTH_SHORT).show()
+                    if (isAdded && context != null) {
+                        Toast.makeText(context, "Earning updated!", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
-                    Toast.makeText(requireContext(), "Please enter valid details.", Toast.LENGTH_SHORT).show()
+                    if (isAdded && context != null) {
+                        Toast.makeText(context, "Please enter valid details.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
+
     private fun fetchAndDisplayTotalEarnings() {
+        if (!isAdded || context == null) return
+
         val currency = sharedPrefsManager.getCurrency()
         val userId = getUserIdFromSession()
 
@@ -263,24 +298,38 @@ class earningFragment : Fragment() {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
                     val totalEarnings = response.toDoubleOrNull() ?: 0.0
 
-                    requireActivity().runOnUiThread {
-                        totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
+                    if (isAdded && activity != null && context != null) {
+                        activity?.runOnUiThread {
+                            if (isAdded && context != null) {
+                                totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
+                            }
+                        }
                     }
                 } else {
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Failed to fetch earnings", Toast.LENGTH_SHORT).show()
+                    if (isAdded && activity != null && context != null) {
+                        activity?.runOnUiThread {
+                            if (isAdded && context != null) {
+                                Toast.makeText(context, "Failed to fetch earnings", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
     }
 
     private fun fetchAndDisplayTotalSavings() {
+        if (!isAdded || context == null) return
+
         val currency = sharedPrefsManager.getCurrency()
         val userId = getUserIdFromSession()
 
@@ -317,42 +366,60 @@ class earningFragment : Fragment() {
                 // Calculate total savings (earnings - expenses)
                 val totalSavings = totalEarnings - totalExpenses
 
-                requireActivity().runOnUiThread {
-                    totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
-                    totalSavingsText.text = "$currency ${String.format("%.2f", totalSavings)}"
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
+                            totalSavingsText.text = "$currency ${String.format("%.2f", totalSavings)}"
+                        }
+                    }
                 }
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error fetching savings: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(context, "Error fetching savings: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
     }
+
     private fun showDeleteEarningDialog(earning: Earning) {
+        if (!isAdded || context == null) return
+
         AlertDialog.Builder(requireContext())
             .setTitle("Delete Earning")
             .setMessage("Are you sure you want to delete this earning?")
             .setPositiveButton("Delete") { _, _ ->
                 deleteEarning(earning)
-                Toast.makeText(requireContext(), "Earning deleted!", Toast.LENGTH_SHORT).show()
+                if (isAdded && context != null) {
+                    Toast.makeText(context, "Earning deleted!", Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
+
     private fun getCurrentTime(): String {
         val formatter = java.text.SimpleDateFormat("HH:mm", Locale.getDefault())
         return formatter.format(Date())
     }
 
     private fun getUserIdFromSession(): String {
-        val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
-        return sharedPref.getString("user_id", "") ?: ""
+        return if (isAdded && context != null) {
+            val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
+            sharedPref.getString("user_id", "") ?: ""
+        } else {
+            ""
+        }
     }
-
-
     private fun addEarning(category: String, amount: Double, date: String) {
+        if (!isAdded || context == null) return
+
         val time = getCurrentTime() // Optional: get current time if needed
         val userId = getUserIdFromSession() // Retrieve from session if needed
 
@@ -379,13 +446,17 @@ class earningFragment : Fragment() {
 
                 val responseCode = connection.responseCode
 
-                requireActivity().runOnUiThread {
-                    if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
-                        Toast.makeText(requireContext(), "Earning added successfully", Toast.LENGTH_SHORT).show()
-                        loadEarnings() // reload data from backend
-                        fetchAndDisplayTotalEarnings()
-                    } else {
-                        Toast.makeText(requireContext(), "Failed to add earning", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
+                                Toast.makeText(context, "Earning added successfully", Toast.LENGTH_SHORT).show()
+                                loadEarnings() // reload data from backend
+                                fetchAndDisplayTotalSavings() // Update total savings immediately
+                            } else {
+                                Toast.makeText(context, "Failed to add earning", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
 
@@ -393,8 +464,12 @@ class earningFragment : Fragment() {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
@@ -402,6 +477,8 @@ class earningFragment : Fragment() {
 
 
     private fun updateEarning(oldEarning: Earning, newEarning: Earning) {
+        if (!isAdded || context == null) return
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val url = URL("http://192.168.1.100:8082/api/earnings/update/${oldEarning.id}")
@@ -425,13 +502,17 @@ class earningFragment : Fragment() {
 
                 val responseCode = connection.responseCode
 
-                requireActivity().runOnUiThread {
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        Toast.makeText(requireContext(), "Earning updated successfully", Toast.LENGTH_SHORT).show()
-                        loadEarnings()
-                        fetchAndDisplayTotalEarnings()
-                    } else {
-                        Toast.makeText(requireContext(), "Failed to update earning", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            if (responseCode == HttpURLConnection.HTTP_OK) {
+                                Toast.makeText(context, "Earning updated successfully", Toast.LENGTH_SHORT).show()
+                                loadEarnings()
+                                fetchAndDisplayTotalEarnings()
+                            } else {
+                                Toast.makeText(context, "Failed to update earning", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
 
@@ -439,15 +520,20 @@ class earningFragment : Fragment() {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
     }
 
-
     private fun deleteEarning(earning: Earning) {
+        if (!isAdded || context == null) return
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val url = URL("http://192.168.1.100:8082/api/earnings/delete/${earning.id}")
@@ -455,13 +541,18 @@ class earningFragment : Fragment() {
                 connection.requestMethod = "DELETE"
 
                 val responseCode = connection.responseCode
-                requireActivity().runOnUiThread {
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        Toast.makeText(requireContext(), "Earning deleted successfully", Toast.LENGTH_SHORT).show()
-                        loadEarnings()
-                        fetchAndDisplayTotalEarnings()
-                    } else {
-                        Toast.makeText(requireContext(), "Failed to delete earning", Toast.LENGTH_SHORT).show()
+
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            if (responseCode == HttpURLConnection.HTTP_OK) {
+                                Toast.makeText(context, "Earning deleted successfully", Toast.LENGTH_SHORT).show()
+                                loadEarnings()
+                                fetchAndDisplayTotalEarnings()
+                            } else {
+                                Toast.makeText(context, "Failed to delete earning", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
 
@@ -469,19 +560,24 @@ class earningFragment : Fragment() {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && activity != null && context != null) {
+                    activity?.runOnUiThread {
+                        if (isAdded && context != null) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
     }
 
-
     private fun updateTotals() {
+        if (!isAdded || context == null) return
+
         val earnings = sharedPrefsManager.getEarnings()
         val totalEarnings = earnings.sumOf { it.amount }
         val currency = sharedPrefsManager.getCurrency()
-        
+
         totalEarningsText.text = "$currency ${String.format("%.2f", totalEarnings)}"
 
         // Calculate real savings: total earnings - total expenses
