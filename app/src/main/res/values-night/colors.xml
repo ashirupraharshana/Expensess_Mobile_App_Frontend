@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base Colors -->
+    <color name="black">#FFFFFFFF</color>
+    <color name="white">#FF000000</color>
+    <color name="Blue">#4A90E2</color>
+    <color name="Grey">#B0B0B0</color>
+    <color name="light_gray">#2C2C2C</color>
+
+    <!-- Theme Colors - Dark Mode -->
+    <color name="primary_background">#121212</color>
+    <color name="secondary_background">#1E1E1E</color>
+    <color name="surface_color">#1E1E1E</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="card_background">#2C2C2C</color>
+    <color name="divider_color">#3C3C3C</color>
+
+    <!-- Existing Colors - Dark Mode Variants -->
+    <color name="PrimaryBtn">#4A90E2</color>
+    <color name="SecondaryBtn">#2C2C2C</color>
+    <color name="background">#1A1A2E</color>
+    <color name="progress">#16CC72</color>
+    <color name="food">#FF9500</color>
+    <color name="foodbg">#2D1F00</color>
+    <color name="shopping">#7B68EE</color>
+    <color name="shoppingbg">#1A0D33</color>
+    <color name="health">#FF03DAC5</color>
+    <color name="healthbg">#003A39</color>
+    <color name="utility">#FF018786</color>
+    <color name="transport">#FF6B6B</color>
+    <color name="transportbg">#330D0D</color>
+    <color name="other">#FF9500</color>
+    <color name="otherbg">#330D0D</color>
+</resources>

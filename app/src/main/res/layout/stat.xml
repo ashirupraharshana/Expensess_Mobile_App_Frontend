@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
+    android:background="@color/primary_background"
     android:fillViewport="true">
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,7 +18,7 @@
             android:text="Statistics"
             android:gravity="center"
             android:textSize="28sp"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:fontFamily="sans-serif"
             android:textStyle="bold"
             android:layout_marginBottom="16dp"/>
@@ -75,7 +75,8 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/card_background">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -87,14 +88,14 @@
                         android:layout_height="wrap_content"
                         android:text="Total Spent"
                         android:textSize="14sp"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/text_primary" />
                     <TextView
                         android:id="@+id/totalSpentText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="LKR 245000.00"
                         android:textSize="22sp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/text_primary"
                         android:fontFamily="sans-serif"
                         android:textStyle="bold"
                         />
@@ -106,7 +107,8 @@
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/card_background">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -118,14 +120,14 @@
                         android:layout_height="wrap_content"
                         android:text="Highest Category"
                         android:textSize="14sp"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/text_primary" />
                     <TextView
                         android:id="@+id/highestCategoryText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Food"
                         android:textSize="22sp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/text_primary"
                         android:fontFamily="sans-serif"
                         android:textStyle="bold"/>
                 </LinearLayout>
@@ -138,12 +140,13 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@color/SecondaryBtn"
+                android:background="@color/card_background"
                 android:padding="16dp">
 
                 <TextView
@@ -151,7 +154,7 @@
                     android:layout_height="wrap_content"
                     android:text="Expense Distribution"
                     android:textSize="18sp"
-                    android:textColor="@color/black"
+                    android:textColor="@color/text_primary"
                     android:fontFamily="sans-serif"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
@@ -182,21 +185,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:background="@color/SecondaryBtn"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@color/SecondaryBtn"
+                android:background="@color/card_background"
                 android:padding="16dp">
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Spending Trends"
                     android:textSize="18sp"
-                    android:textColor="@color/black"
+                    android:textColor="@color/text_primary"
                     android:fontFamily="sans-serif"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
@@ -207,27 +210,27 @@
                     android:layout_height="260dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        
+
         <!-- Earnings Trends Chart Card -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:background="@color/SecondaryBtn"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@color/SecondaryBtn"
+                android:background="@color/card_background"
                 android:padding="16dp">
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Earnings Trends"
                     android:textSize="18sp"
-                    android:textColor="@color/black"
+                    android:textColor="@color/text_primary"
                     android:fontFamily="sans-serif"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />

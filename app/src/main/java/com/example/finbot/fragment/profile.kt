@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.finbot.R
 import com.example.finbot.util.NotificationHelper
 import com.example.finbot.util.SnackbarUtil
@@ -23,6 +24,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import android.content.res.Configuration
+import androidx.appcompat.app.AppCompatDelegate
+import com.example.finbot.util.ThemeManager
 
 class profileFragment : Fragment() {
 
@@ -37,6 +41,9 @@ class profileFragment : Fragment() {
     private lateinit var alertThresholdSeekBar: SeekBar
     private lateinit var thresholdTextView: TextView
     private lateinit var alertThresholdLayout: LinearLayout
+    private lateinit var darkModeButton: LinearLayout
+    private lateinit var darkModeIcon: ImageView
+    private lateinit var darkModeText: TextView
 
     private val currencies = arrayOf("LKR", "USD", "EUR", "GBP", "INR", "AUD")
 
@@ -57,7 +64,6 @@ class profileFragment : Fragment() {
 
         return view
     }
-
     private fun initializeViews(view: View) {
         // User profile
         userNameInput = view.findViewById(R.id.userNameInput)
@@ -82,6 +88,9 @@ class profileFragment : Fragment() {
         view.findViewById<Button>(R.id.exportTextButton)?.visibility = View.GONE
         view.findViewById<Button>(R.id.restoreDataButton)?.visibility = View.GONE
 
+        // Setup dark mode toggle
+        setupDarkModeToggle(view)
+
         // Logout button
         val logoutButton = view.findViewById<Button>(R.id.logout)
         logoutButton.setOnClickListener {
@@ -98,6 +107,20 @@ class profileFragment : Fragment() {
             requireActivity().finish()
         }
     }
+    private fun setupDarkModeToggle(view: View) {
+        darkModeButton = view.findViewById(R.id.darkModeButton)
+        darkModeIcon = view.findViewById(R.id.darkModeIcon)
+        darkModeText = view.findViewById(R.id.darkModeText)
+
+        // Load current theme state
+        updateDarkModeUI()
+
+        // Set click listener for dark mode toggle
+        darkModeButton.setOnClickListener {
+            toggleDarkMode()
+        }
+    }
+
     private fun getCurrencySymbol(currencyCode: Int): String {
         return when (currencyCode) {
             0 -> "LKR"  // Sri Lankan Rupee
@@ -110,17 +133,47 @@ class profileFragment : Fragment() {
         }
     }
 
+    private fun toggleDarkMode() {
+        val currentTheme = ThemeManager.getSelectedTheme(requireContext())
+        val newTheme = if (ThemeManager.isDarkMode(requireContext())) {
+            ThemeManager.THEME_LIGHT
+        } else {
+            ThemeManager.THEME_DARK
+        }
+
+        ThemeManager.setTheme(requireContext(), newTheme)
+        updateDarkModeUI()
+        showSnackbar("Theme changed to ${if (newTheme == ThemeManager.THEME_DARK) "Dark" else "Light"} mode")
+
+        // Recreate activity to apply theme
+        requireActivity().recreate()
+    }
+
+    private fun updateDarkModeUI() {
+        if (!isAdded || !::darkModeText.isInitialized) return
+
+        val isDarkMode = ThemeManager.isDarkMode(requireContext())
+
+        darkModeText.text = if (isDarkMode) {
+            "Switch to Light Mode"
+        } else {
+            "Switch to Dark Mode"
+        }
+    }
+
+
     private fun loadSettings() {
         // Load all settings from backend
         loadUserProfileFromBackend()
         loadBudgetSettingsFromBackend()
         loadNotificationSettingsFromBackend()
     }
+
     private fun loadUserProfileFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
@@ -164,12 +217,13 @@ class profileFragment : Fragment() {
         }
     }
 
-
     private fun createDefaultBudgetForUser() {
+        if (!isAdded || context == null) return
+
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/budget/save")
                 val connection = url.openConnection() as HttpURLConnection
@@ -213,7 +267,10 @@ class profileFragment : Fragment() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        // Check if fragment is still attached before starting coroutine
+        if (!isAdded || context == null) return
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/budget/get?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
@@ -228,7 +285,9 @@ class profileFragment : Fragment() {
                     val response = inputStream.bufferedReader().use { it.readText() }
 
                     if (response.isNullOrEmpty() || response.trim().isEmpty()) {
-                        createDefaultBudgetForUser()
+                        if (isAdded && context != null) {
+                            createDefaultBudgetForUser()
+                        }
                         connection.disconnect()
                         return@launch
                     }
@@ -251,17 +310,25 @@ class profileFragment : Fragment() {
                             }
                         }
                     } catch (jsonException: Exception) {
-                        createDefaultBudgetForUser()
+                        if (isAdded && context != null) {
+                            createDefaultBudgetForUser()
+                        }
                     }
                 } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    createDefaultBudgetForUser()
+                    if (isAdded && context != null) {
+                        createDefaultBudgetForUser()
+                    }
                 } else {
-                    createDefaultBudgetForUser()
+                    if (isAdded && context != null) {
+                        createDefaultBudgetForUser()
+                    }
                 }
                 connection.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
-                createDefaultBudgetForUser()
+                if (isAdded && context != null) {
+                    createDefaultBudgetForUser()
+                }
             }
         }
     }
@@ -270,7 +337,9 @@ class profileFragment : Fragment() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        if (!isAdded || context == null) return
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/budget/get?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
@@ -334,6 +403,7 @@ class profileFragment : Fragment() {
             }
         }
     }
+
     private fun setupListeners() {
         // Notification switches
         budgetAlertsSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -352,10 +422,14 @@ class profileFragment : Fragment() {
     }
 
     private fun updateThresholdText(progress: Int) {
-        thresholdTextView.text = "$progress% of monthly budget"
+        if (isAdded && ::thresholdTextView.isInitialized) {
+            thresholdTextView.text = "$progress% of monthly budget"
+        }
     }
 
     private fun saveUserProfile() {
+        if (!isAdded || context == null) return
+
         val newUsername = userNameInput.text.toString().trim()
         val userId = getUserIdFromSession()
 
@@ -371,7 +445,7 @@ class profileFragment : Fragment() {
 
         Toast.makeText(requireContext(), "Updating username...", Toast.LENGTH_SHORT).show()
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
@@ -415,11 +489,22 @@ class profileFragment : Fragment() {
     }
 
     private fun getUserIdFromSession(): String {
-        val sharedPref = requireContext().getSharedPreferences("user_session", android.content.Context.MODE_PRIVATE)
-        return sharedPref.getString("user_id", "") ?: ""
+        return if (isAdded && context != null) {
+            try {
+                val sharedPref = requireContext().getSharedPreferences("user_session", android.content.Context.MODE_PRIVATE)
+                sharedPref.getString("user_id", "") ?: ""
+            } catch (e: Exception) {
+                e.printStackTrace()
+                ""
+            }
+        } else {
+            ""
+        }
     }
 
     private fun saveBudgetSettings() {
+        if (!isAdded || context == null) return
+
         val budgetStr = monthlyBudgetInput.text.toString().trim()
         if (budgetStr.isEmpty()) {
             showSnackbar("Please enter monthly budget")
@@ -436,7 +521,7 @@ class profileFragment : Fragment() {
                 return
             }
 
-            CoroutineScope(Dispatchers.IO).launch {
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     val budgetUrl = URL("http://192.168.1.100:8082/api/budget/update/budget?userId=$userId&budget=$budget")
                     val budgetConnection = budgetUrl.openConnection() as HttpURLConnection
@@ -491,7 +576,22 @@ class profileFragment : Fragment() {
         }
     }
 
+
+   // Add this method to get current theme mode
+    private fun getCurrentThemeMode(): Int {
+        val sharedPref = requireActivity().getSharedPreferences("app_preferences", MODE_PRIVATE)
+        val savedMode = sharedPref.getString("theme_mode", "system")
+
+        return when (savedMode) {
+            "light" -> AppCompatDelegate.MODE_NIGHT_NO
+            "dark" -> AppCompatDelegate.MODE_NIGHT_YES
+            else -> AppCompatDelegate.getDefaultNightMode()
+        }
+    }
+
     private fun saveNotificationSettings() {
+        if (!isAdded || context == null) return
+
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) {
             showSnackbar("User ID not found")
@@ -502,7 +602,7 @@ class profileFragment : Fragment() {
         val reminderEnabled = dailyReminderSwitch.isChecked
         val alertPercent = alertThresholdSeekBar.progress
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/budget/update/notifications?userId=$userId&notificationsEnabled=$notificationsEnabled&reminderEnabled=$reminderEnabled&alertPercent=$alertPercent")
                 val connection = url.openConnection() as HttpURLConnection
@@ -544,12 +644,16 @@ class profileFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Cancel any ongoing coroutines if needed
+        // viewLifecycleOwner.lifecycleScope automatically cancels all coroutines
     }
 
     private fun showSnackbar(message: String) {
-        if (isAdded && view != null) {
-            SnackbarUtil.showSuccess(requireView(), message, 3000)
+        if (isAdded && view != null && context != null) {
+            try {
+                SnackbarUtil.showSuccess(requireView(), message, 3000)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
