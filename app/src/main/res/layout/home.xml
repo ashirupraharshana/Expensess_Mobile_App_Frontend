@@ -265,6 +265,7 @@
                     android:orientation="vertical">
 
                     <androidx.cardview.widget.CardView
+                        android:id="@+id/welcomeCard"
                         android:layout_width="60dp"
                         android:layout_height="60dp"
                         app:cardBackgroundColor="@color/healthbg"

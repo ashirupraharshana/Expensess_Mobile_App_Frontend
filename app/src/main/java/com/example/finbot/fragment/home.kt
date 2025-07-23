@@ -339,7 +339,6 @@ class homeFragment : Fragment() {
             }
         }
     }
-    // Updated loadExpenses method
     private fun loadExpenses() {
         val userId = getUserIdFromSession()
 
@@ -385,6 +384,13 @@ class homeFragment : Fragment() {
                                 if (expenses.isEmpty()) {
                                     recyclerView.visibility = View.GONE
                                     emptyStateTextView.visibility = View.VISIBLE
+
+                                    // Animate empty state
+                                    emptyStateTextView.alpha = 0f
+                                    emptyStateTextView.animate()
+                                        .alpha(1f)
+                                        .setDuration(500)
+                                        .start()
                                 } else {
                                     recyclerView.visibility = View.VISIBLE
                                     emptyStateTextView.visibility = View.GONE
@@ -393,6 +399,11 @@ class homeFragment : Fragment() {
                                         showExpenseOptionsDialog(expense)
                                     }
                                     recyclerView.adapter = adapter
+
+                                    // Animate the expense items after a short delay
+                                    recyclerView.postDelayed({
+                                        animateExpenseItems()
+                                    }, 100)
                                 }
                             } catch (e: IllegalStateException) {
                                 println("Fragment detached during expenses UI update: ${e.message}")
@@ -401,6 +412,7 @@ class homeFragment : Fragment() {
                     }
 
                 } else {
+                    // Error handling remains the same
                     if (isAdded && context != null) {
                         val currentActivity = activity
                         currentActivity?.runOnUiThread {
@@ -937,5 +949,111 @@ class homeFragment : Fragment() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Animate UI elements when fragment is created
+        animateUIElements()
+    }
+    private fun animateUIElements() {
+        // Welcome card animation
+        val welcomeCard = view?.findViewById<androidx.cardview.widget.CardView>(R.id.welcomeCard)
+        welcomeCard?.apply {
+            alpha = 0f
+            translationY = -100f
+            animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(500)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+
+        // Progress bar animation
+        progressBar?.apply {
+            alpha = 0f
+            scaleX = 0f
+            animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .setDuration(600)
+                .setStartDelay(200)
+                .setInterpolator(android.view.animation.OvershootInterpolator())
+                .start()
+        }
+
+        // Categories animation
+        val categoriesContainer = view?.findViewById<LinearLayout>(R.id.categoriesContainer)
+        categoriesContainer?.apply {
+            alpha = 0f
+            translationX = 100f
+            animate()
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(400)
+                .setStartDelay(300)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+
+        // RecyclerView animation
+        recyclerView?.apply {
+            alpha = 0f
+            translationY = 50f
+            animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(500)
+                .setStartDelay(400)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+
+        // Animate each category item individually for a staggered effect
+        animateCategoryItems()
+    }
+
+    private fun animateCategoryItems() {
+        val categoriesContainer = view?.findViewById<LinearLayout>(R.id.categoriesContainer)
+        categoriesContainer?.let { container ->
+            for (i in 0 until container.childCount) {
+                val categoryItem = container.getChildAt(i)
+                categoryItem.alpha = 0f
+                categoryItem.translationY = 30f
+                categoryItem.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(300)
+                    .setStartDelay(500 + (i * 100L)) // Staggered animation
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
+            }
+        }
+    }
+
+    // Add this method to animate individual expense items when they're loaded
+    private fun animateExpenseItems() {
+        recyclerView?.apply {
+            // Animate items with a staggered effect
+            val layoutManager = layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
+            layoutManager?.let { lm ->
+                for (i in 0 until (adapter?.itemCount ?: 0)) {
+                    val viewHolder = findViewHolderForAdapterPosition(i)
+                    viewHolder?.itemView?.apply {
+                        alpha = 0f
+                        translationX = 100f
+                        animate()
+                            .alpha(1f)
+                            .translationX(0f)
+                            .setDuration(300)
+                            .setStartDelay(i * 50L)
+                            .setInterpolator(android.view.animation.DecelerateInterpolator())
+                            .start()
+                    }
+                }
+            }
+        }
     }
 }

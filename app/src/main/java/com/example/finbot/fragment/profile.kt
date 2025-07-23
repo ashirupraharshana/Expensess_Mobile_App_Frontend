@@ -57,6 +57,9 @@ class profileFragment : Fragment() {
         // Initialize managers
         notificationHelper = NotificationHelper.getInstance(requireContext())
 
+        // Apply current theme to ensure consistency
+        ThemeManager.applyTheme(requireContext())
+
         // Initialize views
         initializeViews(view)
         loadSettings()
@@ -64,6 +67,7 @@ class profileFragment : Fragment() {
 
         return view
     }
+
     private fun initializeViews(view: View) {
         // User profile
         userNameInput = view.findViewById(R.id.userNameInput)
@@ -112,7 +116,7 @@ class profileFragment : Fragment() {
         darkModeIcon = view.findViewById(R.id.darkModeIcon)
         darkModeText = view.findViewById(R.id.darkModeText)
 
-        // Load current theme state
+        // Load and apply current theme state
         updateDarkModeUI()
 
         // Set click listener for dark mode toggle
@@ -135,32 +139,75 @@ class profileFragment : Fragment() {
 
     private fun toggleDarkMode() {
         val currentTheme = ThemeManager.getSelectedTheme(requireContext())
-        val newTheme = if (ThemeManager.isDarkMode(requireContext())) {
-            ThemeManager.THEME_LIGHT
-        } else {
-            ThemeManager.THEME_DARK
+        val newTheme = when (currentTheme) {
+            ThemeManager.THEME_DARK -> ThemeManager.THEME_LIGHT
+            ThemeManager.THEME_LIGHT -> ThemeManager.THEME_DARK
+            ThemeManager.THEME_SYSTEM -> {
+                // If system theme, toggle to opposite of current appearance
+                if (ThemeManager.isDarkMode(requireContext())) {
+                    ThemeManager.THEME_LIGHT
+                } else {
+                    ThemeManager.THEME_DARK
+                }
+            }
+            else -> ThemeManager.THEME_LIGHT
         }
 
+        // Set the new theme
         ThemeManager.setTheme(requireContext(), newTheme)
-        updateDarkModeUI()
-        showSnackbar("Theme changed to ${if (newTheme == ThemeManager.THEME_DARK) "Dark" else "Light"} mode")
 
-        // Recreate activity to apply theme
+        // Update UI text immediately
+        updateDarkModeUI()
+
+        // Show feedback to user
+        val themeName = when (newTheme) {
+            ThemeManager.THEME_DARK -> "Dark"
+            ThemeManager.THEME_LIGHT -> "Light"
+            else -> "System"
+        }
+        showSnackbar("Theme changed to $themeName mode")
+
+        // Recreate activity to fully apply theme changes
         requireActivity().recreate()
     }
 
     private fun updateDarkModeUI() {
         if (!isAdded || !::darkModeText.isInitialized) return
 
-        val isDarkMode = ThemeManager.isDarkMode(requireContext())
+        val currentTheme = ThemeManager.getSelectedTheme(requireContext())
+        val isDarkMode = when (currentTheme) {
+            ThemeManager.THEME_DARK -> true
+            ThemeManager.THEME_LIGHT -> false
+            ThemeManager.THEME_SYSTEM -> ThemeManager.isDarkMode(requireContext())
+            else -> false
+        }
 
         darkModeText.text = if (isDarkMode) {
             "Switch to Light Mode"
         } else {
             "Switch to Dark Mode"
         }
+
+        // Update icon if you have different icons for light/dark
+        // darkModeIcon.setImageResource(if (isDarkMode) R.drawable.ic_light_mode else R.drawable.ic_dark_mode)
+    }
+    override fun onResume() {
+        super.onResume()
+        // Update dark mode UI in case theme was changed elsewhere
+        updateDarkModeUI()
     }
 
+    // Also add this method to check theme on fragment creation
+    private fun applyCurrentTheme() {
+        val currentTheme = ThemeManager.getSelectedTheme(requireContext())
+        AppCompatDelegate.setDefaultNightMode(
+            if (currentTheme == ThemeManager.THEME_DARK) {
+                AppCompatDelegate.MODE_NIGHT_YES
+            } else {
+                AppCompatDelegate.MODE_NIGHT_NO
+            }
+        )
+    }
 
     private fun loadSettings() {
         // Load all settings from backend

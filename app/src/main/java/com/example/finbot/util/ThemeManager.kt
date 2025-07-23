@@ -41,8 +41,16 @@ object ThemeManager {
     }
 
     fun isDarkMode(context: Context): Boolean {
-        val currentMode = context.resources.configuration.uiMode and
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        return currentMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val selectedTheme = getSelectedTheme(context)
+        return when (selectedTheme) {
+            THEME_DARK -> true
+            THEME_LIGHT -> false
+            THEME_SYSTEM -> {
+                val currentMode = context.resources.configuration.uiMode and
+                        android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                currentMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            }
+            else -> false
+        }
     }
 }
