@@ -57,8 +57,6 @@ class profileFragment : Fragment() {
         // Initialize managers
         notificationHelper = NotificationHelper.getInstance(requireContext())
 
-        // Apply current theme to ensure consistency
-        ThemeManager.applyTheme(requireContext())
 
         // Initialize views
         initializeViews(view)
@@ -197,17 +195,6 @@ class profileFragment : Fragment() {
         updateDarkModeUI()
     }
 
-    // Also add this method to check theme on fragment creation
-    private fun applyCurrentTheme() {
-        val currentTheme = ThemeManager.getSelectedTheme(requireContext())
-        AppCompatDelegate.setDefaultNightMode(
-            if (currentTheme == ThemeManager.THEME_DARK) {
-                AppCompatDelegate.MODE_NIGHT_YES
-            } else {
-                AppCompatDelegate.MODE_NIGHT_NO
-            }
-        )
-    }
 
     private fun loadSettings() {
         // Load all settings from backend
@@ -623,18 +610,6 @@ class profileFragment : Fragment() {
         }
     }
 
-
-   // Add this method to get current theme mode
-    private fun getCurrentThemeMode(): Int {
-        val sharedPref = requireActivity().getSharedPreferences("app_preferences", MODE_PRIVATE)
-        val savedMode = sharedPref.getString("theme_mode", "system")
-
-        return when (savedMode) {
-            "light" -> AppCompatDelegate.MODE_NIGHT_NO
-            "dark" -> AppCompatDelegate.MODE_NIGHT_YES
-            else -> AppCompatDelegate.getDefaultNightMode()
-        }
-    }
 
     private fun saveNotificationSettings() {
         if (!isAdded || context == null) return
