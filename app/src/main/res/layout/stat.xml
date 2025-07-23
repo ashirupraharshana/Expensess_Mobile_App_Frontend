@@ -88,17 +88,16 @@
                         android:layout_height="wrap_content"
                         android:text="Total Spent"
                         android:textSize="14sp"
-                        android:textColor="@color/text_primary" />
+                        android:textColor="#FFFFFF" />
                     <TextView
                         android:id="@+id/totalSpentText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="LKR 245000.00"
                         android:textSize="22sp"
-                        android:textColor="@color/text_primary"
+                        android:textColor="#FFFFFF"
                         android:fontFamily="sans-serif"
-                        android:textStyle="bold"
-                        />
+                        android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             <androidx.cardview.widget.CardView
@@ -120,14 +119,14 @@
                         android:layout_height="wrap_content"
                         android:text="Highest Category"
                         android:textSize="14sp"
-                        android:textColor="@color/text_primary" />
+                        android:textColor="#FFFFFF" />
                     <TextView
                         android:id="@+id/highestCategoryText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Food"
                         android:textSize="22sp"
-                        android:textColor="@color/text_primary"
+                        android:textColor="#FFFFFF"
                         android:fontFamily="sans-serif"
                         android:textStyle="bold"/>
                 </LinearLayout>

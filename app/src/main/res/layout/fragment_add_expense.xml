@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white"
+    android:background="@color/primary_background"
     android:padding="16dp">
 
     <TextView
@@ -22,8 +22,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Expense Name"
-        android:textColorHint="@color/Grey"
-        android:textColor="@color/black"
+        android:textColorHint="@color/text_secondary"
+        android:textColor="@color/text_primary"
         android:inputType="text"
         android:layout_marginBottom="8dp"/>
 
@@ -31,8 +31,8 @@
         android:id="@+id/categorySpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColorHint="@color/Grey"
-        android:textColor="@color/black"
+        android:textColorHint="@color/text_secondary"
+        android:textColor="@color/text_primary"
         android:background="@drawable/item_expense_bg"
         android:padding="12dp"
         android:layout_marginBottom="8dp"/>
@@ -42,9 +42,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="12dp"
-        android:background="@android:drawable/editbox_background"
+        android:background="@color/card_background"
         android:text="Select Date"
-        android:textColor="@color/Blue"
+        android:textColor="@color/text_primary"
         android:layout_marginBottom="8dp"/>
 
     <EditText
@@ -52,8 +52,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Amount"
-        android:textColorHint="@color/Grey"
-        android:textColor="@color/black"
+        android:textColorHint="@color/text_secondary"
+        android:textColor="@color/text_primary"
         android:inputType="numberDecimal"
         android:layout_marginBottom="24dp"/>
 
@@ -68,9 +68,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:backgroundTint="@color/black"
+            android:backgroundTint="@color/SecondaryBtn"
             android:text="Cancel"
-            android:textColor="@color/white"
+            android:textColor="@color/text_primary"
             android:layout_marginEnd="4dp"/>
 
         <Button

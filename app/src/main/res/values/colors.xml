@@ -32,4 +32,5 @@
     <color name="transportbg">#FFE9E9</color>
     <color name="other">#FA8A00</color>
     <color name="otherbg">#FFE9E9</color>
+    <color name="card_text_white">#FFFFFF</color>
 </resources>

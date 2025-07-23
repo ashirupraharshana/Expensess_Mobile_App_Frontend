@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
+    android:background="@color/primary_background"
     android:fillViewport="true">
 
     <LinearLayout
@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:text="Earnings"
             android:textSize="28sp"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:fontFamily="sans-serif"
             android:textStyle="bold"
             android:gravity="center"
@@ -30,7 +30,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -62,7 +63,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -106,7 +108,7 @@
             android:layout_height="wrap_content"
             android:text="Recent Earnings"
             android:textSize="20sp"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textStyle="bold"
             android:fontFamily="sans-serif"
             android:layout_marginBottom="16dp" />
@@ -118,7 +120,7 @@
             android:layout_height="wrap_content"
             android:text="No earnings recorded yet.\nTap 'Add Earning' to get started!"
             android:textSize="16sp"
-            android:textColor="@color/Grey"
+            android:textColor="@color/text_secondary"
             android:gravity="center"
             android:layout_marginTop="32dp"
             android:layout_marginBottom="32dp"
@@ -129,7 +131,7 @@
             xmlns:app="http://schemas.android.com/apk/res-auto"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#FFFFFF"
+            android:background="@color/primary_background"
             android:orientation="vertical"
             android:padding="6dp">
 

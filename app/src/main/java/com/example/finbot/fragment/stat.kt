@@ -309,13 +309,94 @@ class statFragment : Fragment() {
         }
     }
 
+    // Updated setupPieChart function
+    private fun setupPieChart(pieChart: PieChart, expenses: List<Expense>) {
+        try {
+            val categoryMap = HashMap<String, Double>()
+            expenses.forEach { expense ->
+                val amount = expense.amount.toDoubleOrNull() ?: 0.0
+                categoryMap[expense.category] = (categoryMap[expense.category] ?: 0.0) + amount
+            }
+
+            val entries = ArrayList<PieEntry>()
+            val totalAmount = categoryMap.values.sum()
+
+            if (totalAmount <= 0) {
+                setupEmptyPieChart()
+                return
+            }
+
+            val colorMap = mapOf(
+                "Food" to getColor(requireContext(), R.color.food),
+                "Shopping" to getColor(requireContext(), R.color.shopping),
+                "Transport" to getColor(requireContext(), R.color.transport),
+                "Health" to getColor(requireContext(), R.color.health),
+                "Utility" to getColor(requireContext(), R.color.Blue),
+                "Other" to Color.GREEN
+            )
+
+            val colors = ArrayList<Int>()
+            categoryMap.forEach { (category, amount) ->
+                val percentage = (amount / totalAmount * 100).toFloat()
+                entries.add(PieEntry(percentage, category))
+                colors.add(colorMap[category] ?: Color.GREEN)
+            }
+
+            val dataSet = PieDataSet(entries, "Expense Distribution")
+            dataSet.colors = colors
+            dataSet.valueTextColor = getChartTextColor() // Theme-aware text color
+            dataSet.valueTextSize = 12f
+
+            val pieData = PieData(dataSet)
+
+            pieChart.data = pieData
+            pieChart.setUsePercentValues(true)
+            pieChart.description.isEnabled = false
+            pieChart.legend.isEnabled = false
+
+            // Theme-aware styling for pie chart
+            pieChart.setBackgroundColor(getChartBackgroundColor())
+            pieChart.setHoleColor(getChartHoleColor())
+            pieChart.setTransparentCircleColor(getChartHoleColor())
+            pieChart.setDrawHoleEnabled(true)
+            pieChart.holeRadius = 40f
+            pieChart.transparentCircleRadius = 45f
+
+            // Set center text color based on theme
+            pieChart.centerText = "Expenses"
+            pieChart.setCenterTextColor(getChartTextColor())
+            pieChart.setCenterTextSize(16f)
+
+            pieChart.animateY(1000)
+            pieChart.invalidate()
+
+            legendContainer.removeAllViews()
+
+            entries.forEachIndexed { index, entry ->
+                val legendItem = createLegendItem(colors[index], entry.label, "${entry.value.toInt()}%")
+                val itemParams = FlexboxLayout.LayoutParams(
+                    FlexboxLayout.LayoutParams.WRAP_CONTENT,
+                    FlexboxLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    marginEnd = 16
+                }
+                legendItem.layoutParams = itemParams
+                legendContainer.addView(legendItem)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            setupEmptyPieChart()
+        }
+    }
+
+    // Updated setupEmptyPieChart function
     private fun setupEmptyPieChart() {
         try {
             val entries = ArrayList<PieEntry>()
             entries.add(PieEntry(100f, "No Data"))
             val dataSet = PieDataSet(entries, "Expense Distribution")
             dataSet.colors = listOf(Color.LTGRAY)
-            dataSet.valueTextColor = Color.WHITE
+            dataSet.valueTextColor = getChartTextColor() // Theme-aware text color
             dataSet.valueTextSize = 12f
 
             val pieData = PieData(dataSet)
@@ -323,7 +404,19 @@ class statFragment : Fragment() {
             pieChart.setUsePercentValues(true)
             pieChart.description.isEnabled = false
             pieChart.legend.isEnabled = false
-            pieChart.centerText = "No expense data"
+
+            // Theme-aware styling for empty pie chart
+            pieChart.setBackgroundColor(getChartBackgroundColor())
+            pieChart.setHoleColor(getChartHoleColor())
+            pieChart.setTransparentCircleColor(getChartHoleColor())
+            pieChart.setDrawHoleEnabled(true)
+            pieChart.holeRadius = 40f
+            pieChart.transparentCircleRadius = 45f
+
+            pieChart.centerText = "No Data"
+            pieChart.setCenterTextColor(getChartTextColor()) // Theme-aware center text
+            pieChart.setCenterTextSize(16f)
+
             pieChart.animateY(1000)
             pieChart.invalidate()
 
@@ -332,6 +425,7 @@ class statFragment : Fragment() {
             e.printStackTrace()
         }
     }
+
 
     private fun setupEmptyLineChart() {
         try {
@@ -367,70 +461,7 @@ class statFragment : Fragment() {
         highestCategoryText.text = highestCategory
     }
 
-    private fun setupPieChart(pieChart: PieChart, expenses: List<Expense>) {
-        try {
-            val categoryMap = HashMap<String, Double>()
-            expenses.forEach { expense ->
-                val amount = expense.amount.toDoubleOrNull() ?: 0.0
-                categoryMap[expense.category] = (categoryMap[expense.category] ?: 0.0) + amount
-            }
 
-            val entries = ArrayList<PieEntry>()
-            val totalAmount = categoryMap.values.sum()
-
-            if (totalAmount <= 0) {
-                setupEmptyPieChart()
-                return
-            }
-
-            val colorMap = mapOf(
-                "Food" to getColor(requireContext(), R.color.food),
-                "Shopping" to getColor(requireContext(), R.color.shopping),
-                "Transport" to getColor(requireContext(), R.color.transport),
-                "Health" to getColor(requireContext(), R.color.health),
-                "Utility" to getColor(requireContext(), R.color.Blue),
-                "Other" to Color.DKGRAY
-            )
-
-            val colors = ArrayList<Int>()
-            categoryMap.forEach { (category, amount) ->
-                val percentage = (amount / totalAmount * 100).toFloat()
-                entries.add(PieEntry(percentage, category))
-                colors.add(colorMap[category] ?: Color.DKGRAY)
-            }
-
-            val dataSet = PieDataSet(entries, "Expense Distribution")
-            dataSet.colors = colors
-            dataSet.valueTextColor = Color.WHITE
-            dataSet.valueTextSize = 12f
-
-            val pieData = PieData(dataSet)
-
-            pieChart.data = pieData
-            pieChart.setUsePercentValues(true)
-            pieChart.description.isEnabled = false
-            pieChart.legend.isEnabled = false
-            pieChart.animateY(1000)
-            pieChart.invalidate()
-
-            legendContainer.removeAllViews()
-
-            entries.forEachIndexed { index, entry ->
-                val legendItem = createLegendItem(colors[index], entry.label, "${entry.value.toInt()}%")
-                val itemParams = FlexboxLayout.LayoutParams(
-                    FlexboxLayout.LayoutParams.WRAP_CONTENT,
-                    FlexboxLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    marginEnd = 16
-                }
-                legendItem.layoutParams = itemParams
-                legendContainer.addView(legendItem)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            setupEmptyPieChart()
-        }
-    }
 
     private fun createLegendItem(color: Int, label: String, percentage: String): View {
         val inflater = LayoutInflater.from(requireContext())
@@ -448,6 +479,38 @@ class statFragment : Fragment() {
         return legendItem
     }
 
+    private fun isDarkMode(): Boolean {
+        val nightModeFlags = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+
+    // Add this helper function to get theme-appropriate colors
+    private fun getChartBackgroundColor(): Int {
+        return if (isDarkMode()) {
+            Color.parseColor("#2C2C2C") // Dark background
+        } else {
+            Color.WHITE // Light background
+        }
+    }
+
+    private fun getChartTextColor(): Int {
+        return if (isDarkMode()) {
+            Color.WHITE // White text for dark mode
+        } else {
+            Color.BLACK // Black text for light mode
+        }
+    }
+
+    private fun getChartHoleColor(): Int {
+        return if (isDarkMode()) {
+            Color.parseColor("#2C2C2C") // Dark hole color
+        } else {
+            Color.WHITE // Light hole color
+        }
+    }
+
+
+    // Updated setupLineChart function
     private fun setupLineChart(lineChart: LineChart, expenses: List<Expense>, period: Int) {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val entries = ArrayList<Entry>()
@@ -531,7 +594,7 @@ class statFragment : Fragment() {
 
         val dataSet = LineDataSet(entries, "Spending Trends")
         dataSet.color = getColor(requireContext(), R.color.Blue)
-        dataSet.valueTextColor = Color.BLACK
+        dataSet.valueTextColor = getChartTextColor() // Theme-aware value text color
         dataSet.valueTextSize = 10f
         dataSet.setCircleColor(getColor(requireContext(), R.color.Blue))
         dataSet.circleRadius = 4f
@@ -540,9 +603,17 @@ class statFragment : Fragment() {
 
         lineChart.data = lineData
         lineChart.description.isEnabled = false
+
+        // Configure Y-axis with theme-aware text
         lineChart.axisLeft.axisMinimum = 0f
+        lineChart.axisLeft.textColor = getChartTextColor() // Theme-aware Y-axis labels
+        lineChart.axisRight.isEnabled = false // Disable right axis
+
+        // Configure X-axis with theme-aware text
         lineChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
         lineChart.xAxis.granularity = 1f
+        lineChart.xAxis.textColor = getChartTextColor() // Theme-aware X-axis labels
+        lineChart.xAxis.setDrawGridLines(false)
 
         // Set appropriate labels for x-axis
         when (period) {
@@ -566,11 +637,19 @@ class statFragment : Fragment() {
             }
         }
 
+        // Configure legend with theme-aware text
         lineChart.legend.isEnabled = true
+        lineChart.legend.textColor = getChartTextColor() // Theme-aware legend text
+
+        // Set chart background based on theme
+        lineChart.setBackgroundColor(getChartBackgroundColor())
+
         lineChart.animateX(1000)
         lineChart.invalidate()
     }
 
+
+    // Updated setupEarningsLineChart function
     private fun setupEarningsLineChart(lineChart: LineChart, earnings: List<Earning>, period: Int) {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val entries = ArrayList<Entry>()
@@ -651,7 +730,7 @@ class statFragment : Fragment() {
 
         val dataSet = LineDataSet(entries, "Earnings Trends")
         dataSet.color = getColor(requireContext(), R.color.progress)
-        dataSet.valueTextColor = Color.BLACK
+        dataSet.valueTextColor = getChartTextColor() // Theme-aware value text color
         dataSet.valueTextSize = 10f
         dataSet.setCircleColor(getColor(requireContext(), R.color.progress))
         dataSet.circleRadius = 4f
@@ -660,9 +739,17 @@ class statFragment : Fragment() {
 
         lineChart.data = lineData
         lineChart.description.isEnabled = false
+
+        // Configure Y-axis with theme-aware text
         lineChart.axisLeft.axisMinimum = 0f
+        lineChart.axisLeft.textColor = getChartTextColor() // Theme-aware Y-axis labels
+        lineChart.axisRight.isEnabled = false // Disable right axis
+
+        // Configure X-axis with theme-aware text
         lineChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
         lineChart.xAxis.granularity = 1f
+        lineChart.xAxis.textColor = getChartTextColor() // Theme-aware X-axis labels
+        lineChart.xAxis.setDrawGridLines(false)
 
         when (period) {
             PERIOD_WEEK -> {
@@ -685,7 +772,13 @@ class statFragment : Fragment() {
             }
         }
 
+        // Configure legend with theme-aware text
         lineChart.legend.isEnabled = true
+        lineChart.legend.textColor = getChartTextColor() // Theme-aware legend text
+
+        // Set chart background based on theme
+        lineChart.setBackgroundColor(getChartBackgroundColor())
+
         lineChart.animateX(1000)
         lineChart.invalidate()
     }

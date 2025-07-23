@@ -33,6 +33,7 @@ import org.json.JSONObject
 import java.util.*
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.core.content.ContextCompat
 
 class homeFragment : Fragment() {
 
@@ -760,8 +761,10 @@ class homeFragment : Fragment() {
         dateInput.text = expense.date
         amountInput.setText(expense.amount)
 
-        dateInput.setTextColor(resources.getColor(R.color.black, null))
-        amountInput.setTextColor(resources.getColor(R.color.black, null))
+        // Updated for dark mode compatibility
+        dateInput.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+        dateInput.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.card_background))
+        amountInput.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
 
         val calendar = Calendar.getInstance()
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
