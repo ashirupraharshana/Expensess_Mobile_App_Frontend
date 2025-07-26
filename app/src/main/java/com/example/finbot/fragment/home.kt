@@ -34,6 +34,9 @@ import java.util.*
 import android.app.PendingIntent
 import android.content.Intent
 import androidx.core.content.ContextCompat
+import android.graphics.Color
+import android.widget.TextView
+import com.google.android.material.snackbar.Snackbar
 
 class homeFragment : Fragment() {
 
@@ -497,10 +500,6 @@ class homeFragment : Fragment() {
 
                 val percentUsed = if (budget > 0) ((totalExpenses / budget) * 100).toInt() else 0
 
-                // Enhanced notification logic - show exceeded notifications every time
-                val alertPercent = sharedPrefsManager.getBudgetAlertPercent()
-                val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
-
                 // Check if fragment is still attached before updating UI
                 if (isAdded && context != null) {
                     val currentActivity = activity
@@ -509,28 +508,14 @@ class homeFragment : Fragment() {
                             // Double-check fragment is still attached
                             if (!isAdded || context == null) return@runOnUiThread
 
+                            // Handle notifications
+                            val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
                             if (notificationsEnabled && budget > 0) {
-                                when {
-                                    percentUsed >= 100 -> {
-                                        // Always show notification when budget is exceeded
-                                        showBudgetExceededNotification(
-                                            title = "Budget Exceeded!",
-                                            message = "You have exceeded your monthly budget by ${percentUsed - 100}%! Current spending: $currency ${String.format("%.2f", totalExpenses)}"
-                                        )
-                                    }
-                                    percentUsed >= alertPercent -> {
-                                        showBudgetNotificationOnce(
-                                            title = "Budget Alert",
-                                            message = "You have used $percentUsed% of your monthly budget ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
-                                        )
-                                    }
-                                    percentUsed >= 90 -> {
-                                        showBudgetNotificationOnce(
-                                            title = "Budget Warning",
-                                            message = "You're approaching your budget limit! $percentUsed% used ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})"
-                                        )
-                                    }
-                                }
+                                // Check if we should reset the exceeded notification flag
+                                checkAndResetExceededNotification(percentUsed)
+
+                                // Handle budget notifications
+                                handleBudgetNotifications(percentUsed, totalExpenses, budget, currency)
                             }
 
                             // Update UI only if fragment is still attached
@@ -552,14 +537,15 @@ class homeFragment : Fragment() {
                                         progressPercentage.setTextColor(context.getColor(R.color.white))
                                     }
                                     percentUsed >= 90 -> {
-                                        budgetTextView.setTextColor(context.getColor(R.color.food))
-                                        progressBar.setIndicatorColor(context.getColor(R.color.food))
-                                        limitText.setTextColor(context.getColor(R.color.food))
-                                        progressPercentage.setTextColor(context.getColor(R.color.food))
+                                        budgetTextView.setTextColor(context.getColor(R.color.transport))
+                                        progressBar.setIndicatorColor(context.getColor(R.color.transport))
+                                        limitText.setTextColor(context.getColor(R.color.transport))
+                                        progressPercentage.setTextColor(context.getColor(R.color.white))
                                     }
                                     percentUsed >= 75 -> {
                                         budgetTextView.setTextColor(context.getColor(R.color.food))
                                         progressBar.setIndicatorColor(context.getColor(R.color.food))
+                                        limitText.setTextColor(context.getColor(R.color.food))
                                     }
                                     else -> {
                                         budgetTextView.setTextColor(context.getColor(R.color.food))
@@ -608,28 +594,49 @@ class homeFragment : Fragment() {
         }
     }
 
-    private fun showBudgetExceededNotification(title: String, message: String) {
-        showNotification(title, message)
+    private fun handleBudgetNotifications(percentUsed: Int, totalExpenses: Double, budget: Double, currency: String) {
+        val alertPercent = sharedPrefsManager.getBudgetAlertPercent()
+
+        when {
+            percentUsed >= 100 -> {
+                // Show exceeded notification only once per month when limit is first exceeded
+                showBudgetExceededNotificationOnce(totalExpenses, budget, currency, percentUsed)
+            }
+            percentUsed >= alertPercent -> {
+                showBudgetNotificationOnce(
+                    title = "Budget Alert",
+                    message = "You have used $percentUsed% of your monthly budget ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})",
+                    notificationType = "alert"
+                )
+            }
+            percentUsed >= 90 -> {
+                showBudgetNotificationOnce(
+                    title = "Budget Warning",
+                    message = "You're approaching your budget limit! $percentUsed% used ($currency ${String.format("%.2f", totalExpenses)} of $currency ${String.format("%.2f", budget)})",
+                    notificationType = "warning"
+                )
+            }
+        }
     }
 
-    private fun showBudgetNotificationOnce(title: String, message: String) {
+    private fun showBudgetNotificationOnce(title: String, message: String, notificationType: String) {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val currentMonthYear = "$currentYear-$currentMonth"
 
-        // Create unique keys for different notification types (excluding exceeded)
-        val notificationKey = when {
-            title.contains("Alert") -> "alert_$currentMonthYear"
-            title.contains("Warning") -> "warning_$currentMonthYear"
-            else -> "general_$currentMonthYear"
-        }
-
+        val notificationKey = "${notificationType}_$currentMonthYear"
         val notificationSent = notificationPrefs.getBoolean(notificationKey, false)
 
         // Show notification if not sent for this type this month
         if (!notificationSent) {
-            showNotification(title, message)
+            val notificationId = when (notificationType) {
+                "alert" -> 1002
+                "warning" -> 1003
+                else -> 1000
+            }
+
+            showNotification(title, message, notificationId)
 
             // Mark this notification type as sent for this month
             val editor = notificationPrefs.edit()
@@ -638,107 +645,123 @@ class homeFragment : Fragment() {
         }
     }
 
-    private fun clearExceededNotificationTracking() {
+
+    private fun showBudgetExceededNotificationOnce(totalExpenses: Double, budget: Double, currency: String, percentUsed: Int) {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val currentMonthYear = "$currentYear-$currentMonth"
 
-        val editor = notificationPrefs.edit()
-        editor.remove("exceeded_$currentMonthYear")
-        editor.apply()
+        // Create a unique key for exceeded notification
+        val exceededKey = "exceeded_$currentMonthYear"
+        val exceededNotificationSent = notificationPrefs.getBoolean(exceededKey, false)
+
+        // Also track the last exceeded percentage to detect new exceeding events
+        val lastExceededPercent = notificationPrefs.getInt("last_exceeded_percent_$currentMonthYear", 0)
+
+        // Show notification only if:
+        // 1. No exceeded notification sent this month, OR
+        // 2. The percentage significantly increased (e.g., went from 100% to 110%)
+        val shouldShowNotification = !exceededNotificationSent ||
+                (percentUsed > lastExceededPercent && percentUsed - lastExceededPercent >= 10)
+
+        if (shouldShowNotification) {
+            val exceededBy = percentUsed - 100
+            val title = "Budget Exceeded!"
+            val message = if (exceededBy > 0) {
+                "You have exceeded your monthly budget by $exceededBy%! Current spending: $currency ${String.format("%.2f", totalExpenses)}"
+            } else {
+                "You have reached your monthly budget limit! Current spending: $currency ${String.format("%.2f", totalExpenses)}"
+            }
+
+            showNotification(title, message, 1001)
+
+            // Mark exceeded notification as sent and update the percentage
+            val editor = notificationPrefs.edit()
+            editor.putBoolean(exceededKey, true)
+            editor.putInt("last_exceeded_percent_$currentMonthYear", percentUsed)
+            editor.apply()
+
+            println("Budget exceeded notification sent for $percentUsed% usage") // Debug log
+        } else {
+            println("Budget exceeded notification already sent this month or percentage not significantly changed") // Debug log
+        }
+    }
+    private fun checkAndResetExceededNotification(percentUsed: Int) {
+        if (percentUsed < 100) {
+            val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
+            val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
+            val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+            val currentMonthYear = "$currentYear-$currentMonth"
+
+            val editor = notificationPrefs.edit()
+            editor.putBoolean("exceeded_$currentMonthYear", false)
+            editor.putInt("last_exceeded_percent_$currentMonthYear", 0)
+            editor.apply()
+
+            println("Reset exceeded notification flag - budget back under 100%") // Debug log
+        }
     }
 
-    private fun showNotification(title: String, message: String) {
-        val notificationManager =
-            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun showNotification(title: String, message: String, notificationId: Int = 1000) {
+        try {
+            val notificationManager =
+                requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val channelId = "budget_alert_channel"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Budget Alerts",
-                NotificationManager.IMPORTANCE_HIGH
+            val channelId = "budget_alert_channel"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Budget Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+                )
+                channel.description = "Notifications when budget limit is exceeded"
+                channel.enableVibration(true)
+                channel.enableLights(true)
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            // Create an intent to open the app when notification is clicked
+            val intent = Intent(requireContext(), requireActivity()::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            val pendingIntent = PendingIntent.getActivity(
+                requireContext(),
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            channel.description = "Notifications when budget limit is exceeded"
-            channel.enableVibration(true)
-            channel.enableLights(true)
-            notificationManager.createNotificationChannel(channel)
+
+            val builder = NotificationCompat.Builder(requireContext(), channelId)
+                .setSmallIcon(R.drawable.logo)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+
+            notificationManager.notify(notificationId, builder.build())
+
+            println("Budget notification sent: $title - $message") // Debug log
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            println("Failed to send notification: ${e.message}")
         }
-
-        // Create an intent to open the app when notification is clicked
-        val intent = Intent(requireContext(), requireActivity()::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        val pendingIntent = PendingIntent.getActivity(
-            requireContext(),
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val builder = NotificationCompat.Builder(requireContext(), channelId)
-            .setSmallIcon(R.drawable.logo)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-
-        // Use different notification IDs for different types
-        val notificationId = when {
-            title.contains("Exceeded") -> 1001
-            title.contains("Alert") -> 1002
-            title.contains("Warning") -> 1003
-            else -> 1000
-        }
-
-        notificationManager.notify(notificationId, builder.build())
     }
-
-    private fun resetNotificationFlag() {
-        val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
-        val editor = notificationPrefs.edit()
-        editor.putBoolean(NOTIFICATION_SENT_KEY, false)
-        editor.apply()
-    }
-
-    private fun resetMonthlyNotifications() {
+    private fun resetAllNotificationTracking() {
         val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
         val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val currentMonthYear = "$currentYear-$currentMonth"
 
         val editor = notificationPrefs.edit()
-        editor.putBoolean("exceeded_$currentMonthYear", false)
         editor.putBoolean("alert_$currentMonthYear", false)
         editor.putBoolean("warning_$currentMonthYear", false)
         editor.apply()
     }
 
-    private fun hasAnyBudgetNotificationBeenSent(): Boolean {
-        val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
-        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
-        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-        val currentMonthYear = "$currentYear-$currentMonth"
-
-        return notificationPrefs.getBoolean("exceeded_$currentMonthYear", false) ||
-                notificationPrefs.getBoolean("alert_$currentMonthYear", false) ||
-                notificationPrefs.getBoolean("warning_$currentMonthYear", false)
-    }
-
-    private fun hasNotificationBeenSent(): Boolean {
-        val notificationPrefs = requireContext().getSharedPreferences(NOTIFICATION_PREF, Context.MODE_PRIVATE)
-        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
-        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-        val currentMonthYear = "$currentYear-$currentMonth"
-
-        val lastNotificationMonth = notificationPrefs.getString(NOTIFICATION_MONTH_KEY, "")
-        val notificationSent = notificationPrefs.getBoolean(NOTIFICATION_SENT_KEY, false)
-
-        return lastNotificationMonth == currentMonthYear && notificationSent
-    }
 
     private fun showExpenseOptionsDialog(expense: Expense) {
         val options = arrayOf("Edit", "Delete")
@@ -838,7 +861,11 @@ class homeFragment : Fragment() {
 
                             requireActivity().runOnUiThread {
                                 if (responseCode == HttpURLConnection.HTTP_OK) {
-                                    SnackbarUtil.showSuccess(requireView(), "Expense updated successfully", 3000)
+                                    val snackbar = Snackbar.make(requireView(), "Expense updated successfully", 3000)
+                                    snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                    snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                    snackbar.show()
+
                                     loadExpenses()
                                     updateBudgetInfo()
                                     fetchAndDisplayTotalExpenses()
@@ -850,7 +877,10 @@ class homeFragment : Fragment() {
                                         e.printStackTrace()
                                     }
                                 } else {
-                                    Toast.makeText(requireContext(), "Failed to update expense", Toast.LENGTH_SHORT).show()
+                                    val snackbar = Snackbar.make(requireView(), "Failed to update expense", Snackbar.LENGTH_SHORT)
+                                    snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                    snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                    snackbar.show()
                                 }
                             }
 
@@ -921,7 +951,11 @@ class homeFragment : Fragment() {
 
                         requireActivity().runOnUiThread {
                             if (responseCode == HttpURLConnection.HTTP_OK) {
-                                SnackbarUtil.showWarning(requireView(), "Expense deleted", 2500)
+                                val snackbar = Snackbar.make(requireView(), "Expense deleted", 2500)
+                                snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                snackbar.show()
+
                                 loadExpenses()
                                 updateBudgetInfo()
                                 fetchAndDisplayTotalExpenses()
@@ -933,7 +967,12 @@ class homeFragment : Fragment() {
                                     e.printStackTrace()
                                 }
                             } else {
-                                Toast.makeText(requireContext(), "Failed to delete expense", Toast.LENGTH_SHORT).show()
+                                val snackbar = Snackbar.make(requireView(), "Failed to delete expense", Snackbar.LENGTH_SHORT)
+                                val snackbarView = snackbar.view
+                                snackbarView.background = ContextCompat.getDrawable(requireContext(), R.drawable.snackbar_background)
+                                val textView = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+                                textView.setTextColor(Color.WHITE)
+                                snackbar.show()
                             }
                         }
 

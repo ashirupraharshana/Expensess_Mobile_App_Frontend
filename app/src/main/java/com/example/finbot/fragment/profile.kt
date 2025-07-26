@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import com.example.finbot.util.ThemeManager
 
 class profileFragment : Fragment() {
@@ -477,8 +478,6 @@ class profileFragment : Fragment() {
             return
         }
 
-        Toast.makeText(requireContext(), "Updating username...", Toast.LENGTH_SHORT).show()
-
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val url = URL("http://192.168.1.100:8082/api/users/username/$userId")
@@ -502,9 +501,15 @@ class profileFragment : Fragment() {
                     requireActivity().runOnUiThread {
                         if (isAdded && context != null) {
                             if (responseCode == HttpURLConnection.HTTP_OK) {
-                                Toast.makeText(requireContext(), "Username updated successfully!", Toast.LENGTH_SHORT).show()
+                                val snackbar = Snackbar.make(requireView(), "Username updated successfully!", Snackbar.LENGTH_SHORT)
+                                snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                snackbar.show()
                             } else {
-                                Toast.makeText(requireContext(), "Failed to update username", Toast.LENGTH_SHORT).show()
+                                val snackbar = Snackbar.make(requireView(), "Failed to update username", Snackbar.LENGTH_SHORT)
+                                snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                snackbar.show()
                             }
                         }
                     }
@@ -514,7 +519,10 @@ class profileFragment : Fragment() {
                 if (isAdded && context != null) {
                     requireActivity().runOnUiThread {
                         if (isAdded && context != null) {
-                            Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            val snackbar = Snackbar.make(requireView(), "Error: ${e.message}", Snackbar.LENGTH_SHORT)
+                            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                            snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                            snackbar.show()
                         }
                     }
                 }
@@ -578,9 +586,15 @@ class profileFragment : Fragment() {
                             requireActivity().runOnUiThread {
                                 if (isAdded) {
                                     if (currencyResponseCode == HttpURLConnection.HTTP_OK) {
-                                        showSnackbar("Budget settings saved successfully")
+                                        val snackbar = Snackbar.make(requireView(), "Budget settings saved successfully", Snackbar.LENGTH_SHORT)
+                                        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                        snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                        snackbar.show()
                                     } else {
-                                        showSnackbar("Failed to save currency setting")
+                                        val snackbar = Snackbar.make(requireView(), "Failed to save currency setting", Snackbar.LENGTH_SHORT)
+                                        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                        snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                        snackbar.show()
                                     }
                                 }
                             }
@@ -589,7 +603,10 @@ class profileFragment : Fragment() {
                         if (isAdded && context != null) {
                             requireActivity().runOnUiThread {
                                 if (isAdded) {
-                                    showSnackbar("Failed to save budget setting")
+                                    val snackbar = Snackbar.make(requireView(), "Failed to save budget setting", Snackbar.LENGTH_SHORT)
+                                    snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                    snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                    snackbar.show()
                                 }
                             }
                         }
@@ -599,17 +616,22 @@ class profileFragment : Fragment() {
                     if (isAdded && context != null) {
                         requireActivity().runOnUiThread {
                             if (isAdded) {
-                                showSnackbar("Error: ${e.message}")
+                                val snackbar = Snackbar.make(requireView(), "Error: ${e.message}", Snackbar.LENGTH_SHORT)
+                                snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                snackbar.show()
                             }
                         }
                     }
                 }
             }
         } catch (e: NumberFormatException) {
-            showSnackbar("Please enter a valid number for budget")
+            val snackbar = Snackbar.make(requireView(), "Please enter a valid number for budget", Snackbar.LENGTH_SHORT)
+            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+            snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+            snackbar.show()
         }
     }
-
 
     private fun saveNotificationSettings() {
         if (!isAdded || context == null) return
@@ -638,7 +660,10 @@ class profileFragment : Fragment() {
                     requireActivity().runOnUiThread {
                         if (isAdded && ::notificationHelper.isInitialized) {
                             if (responseCode == HttpURLConnection.HTTP_OK) {
-                                showSnackbar("Notification settings saved")
+                                val snackbar = Snackbar.make(requireView(), "Notification settings saved", Snackbar.LENGTH_SHORT)
+                                snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                snackbar.show()
 
                                 if (dailyReminderSwitch.isChecked) {
                                     notificationHelper.scheduleDailyReminder()
@@ -646,7 +671,10 @@ class profileFragment : Fragment() {
                                     notificationHelper.cancelDailyReminder()
                                 }
                             } else {
-                                showSnackbar("Failed to save notification settings")
+                                val snackbar = Snackbar.make(requireView(), "Failed to save notification settings", Snackbar.LENGTH_SHORT)
+                                snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                                snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                                snackbar.show()
                             }
                         }
                     }
@@ -656,7 +684,10 @@ class profileFragment : Fragment() {
                 if (isAdded && context != null) {
                     requireActivity().runOnUiThread {
                         if (isAdded) {
-                            showSnackbar("Error: ${e.message}")
+                            val snackbar = Snackbar.make(requireView(), "Error: ${e.message}", Snackbar.LENGTH_SHORT)
+                            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                            snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                            snackbar.show()
                         }
                     }
                 }
@@ -668,14 +699,10 @@ class profileFragment : Fragment() {
         super.onDestroy()
         // viewLifecycleOwner.lifecycleScope automatically cancels all coroutines
     }
-
     private fun showSnackbar(message: String) {
-        if (isAdded && view != null && context != null) {
-            try {
-                SnackbarUtil.showSuccess(requireView(), message, 3000)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        val snackbar = Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT)
+        snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+        snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+        snackbar.show()
     }
 }

@@ -332,8 +332,8 @@ class statFragment : Fragment() {
                 "Transport" to getColor(requireContext(), R.color.transport),
                 "Health" to getColor(requireContext(), R.color.health),
                 "Utility" to getColor(requireContext(), R.color.Blue),
-                "Other" to Color.GREEN
-            )
+                "Other" to getColor(requireContext(), R.color.others),)
+
 
             val colors = ArrayList<Int>()
             categoryMap.forEach { (category, amount) ->

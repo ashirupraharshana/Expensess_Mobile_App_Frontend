@@ -60,6 +60,7 @@
                     android:id="@+id/Email"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/edittext"
                     android:hint="Email"
                     android:textColor="@color/black"
                     android:inputType="textEmailAddress"
@@ -87,6 +88,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Otp"
+                    android:background="@drawable/edittext"
                     android:textColor="@color/black"
                     android:inputType="text"
                     android:textColorLink="#000000" />
@@ -119,6 +121,7 @@
                 app:boxCornerRadiusBottomStart="20dp"
                 app:boxCornerRadiusBottomEnd="20dp"
                 app:hintTextColor="@color/Grey"
+                android:background="@drawable/edittext"
                 app:boxBackgroundMode="outline">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -139,6 +142,7 @@
                 app:boxStrokeWidth="1dp"
                 app:boxStrokeColor="@color/black"
                 app:boxCornerRadiusTopStart="20dp"
+                android:background="@drawable/edittext"
                 app:boxCornerRadiusTopEnd="20dp"
                 app:boxCornerRadiusBottomStart="20dp"
                 app:boxCornerRadiusBottomEnd="20dp"
@@ -151,6 +155,7 @@
                     android:layout_height="wrap_content"
                     android:hint="Password"
                     android:textColor="@color/black"
+                    android:background="@drawable/edittext"
                     android:inputType="textPassword"
                     android:textColorLink="#000000" />
             </com.google.android.material.textfield.TextInputLayout>

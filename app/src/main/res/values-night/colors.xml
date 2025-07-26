@@ -3,7 +3,7 @@
     <!-- Base Colors -->
     <color name="black">#FFFFFFFF</color>
     <color name="white">#FF000000</color>
-    <color name="Blue">#2445CD</color>
+    <color name="Blue">#4A90E2</color>
     <color name="Grey">#B0B0B0</color>
     <color name="light_gray">#2C2C2C</color>
 
@@ -33,4 +33,6 @@
     <color name="other">#FF9500</color>
     <color name="otherbg">#330D0D</color>
     <color name="card_text_white">#FFFFFF</color>
+    <color name="snackbar_background_light">#2C2C2C</color>
+    <color name="snackbar_text_light">#FFFFFF</color>
 </resources>

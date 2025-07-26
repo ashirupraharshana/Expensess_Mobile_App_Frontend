@@ -23,6 +23,8 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import kotlinx.coroutines.launch
 import java.util.*
+import android.graphics.Color
+import androidx.core.content.ContextCompat
 
 class AddExpenseFragment : Fragment() {
 
@@ -136,36 +138,43 @@ class AddExpenseFragment : Fragment() {
 
                     requireActivity().runOnUiThread {
                         if (responseCode == 200) {
-                            SnackbarUtil.showSuccess(requireView(), "Expense added successfully", 3000)
+                            val snackbar = Snackbar.make(requireView(), "Expense added successfully", 3000)
+                            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                            snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                            snackbar.show()
+
                             notificationHelper.checkAndShowBudgetAlertIfNeeded()
                             (requireActivity() as MainActivity).loadFragment(
                                 (requireActivity() as MainActivity).supportFragmentManager.findFragmentByTag("homeFragment")
                                     ?: com.example.finbot.fragments.homeFragment()
                             )
                         } else {
-                            Snackbar.make(requireView(), "Failed to add expense: $responseText", 3000).show()
+                            val snackbar = Snackbar.make(requireView(), "Failed to add expense: $responseText", 3000)
+                            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))
+                            snackbar.setTextColor(ContextCompat.getColor(requireContext(), R.color.snackbar_text_light))
+                            snackbar.show()
                         }
                     }
                 } catch (e: Exception) {
                     requireActivity().runOnUiThread {
-                        Snackbar.make(requireView(), "Error: ${e.message}", 3000).show()
+                        val snackbar = Snackbar.make(requireView(), "Error: ${e.message}", 3000)
+                        val snackbarView = snackbar.view
+                        snackbarView.background = ContextCompat.getDrawable(requireContext(), R.drawable.snackbar_background)
+                        val textView = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+                        textView.setTextColor(Color.WHITE)
+                        snackbar.show()
                     }
                 }
             }
 
         } else {
-            Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun getCategoryIconResId(category: String): Int {
-        return when (category) {
-            "Food" -> R.drawable.food
-            "Shopping" -> R.drawable.shopping
-            "Transport" -> R.drawable.transport
-            "Health" -> R.drawable.health
-            "Utility" -> R.drawable.utility
-            else -> R.drawable.other
+            val toast = Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT)
+            // If you want to style the Toast as well (optional)
+            val toastView = toast.view
+            toastView?.background = ContextCompat.getDrawable(requireContext(), R.drawable.snackbar_background)
+            val toastText = toastView?.findViewById<TextView>(android.R.id.message)
+            toastText?.setTextColor(Color.WHITE)
+            toast.show()
         }
     }
 
