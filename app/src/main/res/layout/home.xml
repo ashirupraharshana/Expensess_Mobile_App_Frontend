@@ -1,361 +1,374 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
+    android:orientation="vertical"
     android:background="@color/primary_background">
 
-    <LinearLayout
+    <!-- Network Error Container - This will be populated by NetworkErrorHandler -->
+    <FrameLayout
+        android:id="@+id/networkErrorContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:layout_height="wrap_content" />
 
-        <!-- Welcome Header -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="6dp"
-            app:cardBackgroundColor="@color/card_background"
-            android:layout_marginBottom="20dp">
+    <!-- Main Content ScrollView -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="24dp"
-                android:background="@color/Blue">
-
-                <TextView
-                    android:id="@+id/WelcomeNote"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="28sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif"/>
-
-                <!-- Amount Display -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="16dp">
-
-                    <TextView
-                        android:id="@+id/totalExpenseText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="LKR 25,000.00"
-                        android:textSize="36sp"
-                        android:textColor="@color/white"
-                        android:fontFamily="sans-serif"
-                        android:textStyle="bold"/>
-
-                    <TextView
-                        android:id="@+id/budgetText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Budget: LKR 30,000.00 (83% used)"
-                        android:textSize="14sp"
-                        android:textColor="@color/white"
-                        android:layout_marginTop="4dp"
-                        android:fontFamily="sans-serif"/>
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- Progress Bar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="24dp">
+            android:padding="20dp">
 
-            <LinearLayout
+            <!-- Welcome Header -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/welcomeCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                app:cardCornerRadius="24dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="@color/card_background"
+                android:layout_marginBottom="20dp">
 
-                <TextView
-                    android:id="@+id/spentPercentText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Spent: 65%"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_primary"
-                    android:fontFamily="sans-serif-medium"/>
-
-                <TextView
-                    android:id="@+id/limitText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:fontFamily="sans-serif"
-                    android:text="of LKR 30,000 limit"
-                    android:textColor="@color/Blue"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <!-- Modern Progress Bar with Percentage Overlay -->
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
-
-                <!-- Progress Bar -->
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/progressBar"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="16dp"
-                    android:progress="65"
-                    app:indicatorColor="@color/Blue"
-                    app:trackColor="@color/progress"
-                    app:trackCornerRadius="8dp"
-                    app:trackThickness="26dp"
-                    app:showAnimationBehavior="none"
-                    app:hideAnimationBehavior="none" />
-
-                <!-- Percentage Text Overlay -->
-                <TextView
-                    android:id="@+id/progressPercentage"
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="65%"
-                    android:textSize="12sp"
-                    android:textColor="@color/white"
-                    android:fontFamily="sans-serif"
-                    android:textStyle="bold"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:padding="4dp"
-                    android:backgroundTint="@color/Blue"/>
-            </FrameLayout>
-        </LinearLayout>
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:background="@color/Blue">
 
-        <!-- Categories Title -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Categories"
-            android:textSize="20sp"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif"
-            android:layout_marginBottom="16dp"/>
+                    <TextView
+                        android:id="@+id/WelcomeNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="28sp"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif"/>
 
-        <!-- Categories Horizontal Scroll -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
+                    <!-- Amount Display -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="16dp">
 
+                        <TextView
+                            android:id="@+id/totalExpenseText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="LKR 25,000.00"
+                            android:textSize="36sp"
+                            android:textColor="@color/white"
+                            android:fontFamily="sans-serif"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:id="@+id/budgetText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Budget: LKR 30,000.00 (83% used)"
+                            android:textSize="14sp"
+                            android:textColor="@color/white"
+                            android:layout_marginTop="4dp"
+                            android:fontFamily="sans-serif"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Progress Bar -->
             <LinearLayout
-                android:id="@+id/categoriesContainer"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp">
+                android:orientation="vertical"
+                android:layout_marginBottom="24dp">
 
-                <!-- Category 1 -->
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="16dp">
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        app:cardCornerRadius="30dp"
-                        app:cardBackgroundColor="@color/foodbg">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/food"
-                            android:tint="@color/food"
-                            android:contentDescription="@string/category_food_desc" />
-                    </androidx.cardview.widget.CardView>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
-                        android:layout_width="match_parent"
+                        android:id="@+id/spentPercentText"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="@string/category_food_desc"
+                        android:text="Spent: 65%"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <!-- Category 2 -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="16dp">
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        app:cardCornerRadius="30dp"
-                        app:cardBackgroundColor="@color/shoppingbg">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/shopping"
-                            android:tint="@color/shopping"
-                            android:contentDescription="@string/category_shopping_desc" />
-                    </androidx.cardview.widget.CardView>
+                        android:fontFamily="sans-serif-medium"/>
 
                     <TextView
-                        android:layout_width="match_parent"
+                        android:id="@+id/limitText"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="@string/category_shopping_desc"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp" />
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="sans-serif"
+                        android:text="of LKR 30,000 limit"
+                        android:textColor="@color/Blue"
+                        android:textSize="16sp" />
                 </LinearLayout>
 
-                <!-- Category 3 -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
+                <!-- Modern Progress Bar with Percentage Overlay -->
+                <FrameLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="16dp">
+                    android:layout_marginTop="12dp">
 
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        app:cardCornerRadius="30dp"
-                        app:cardBackgroundColor="@color/transportbg">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/transport"
-                            android:tint="@color/transport"
-                            android:contentDescription="@string/category_transport_desc" />
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
+                    <!-- Progress Bar -->
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progressBar"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="@string/category_transport_desc"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp" />
-                </LinearLayout>
+                        android:layout_height="16dp"
+                        android:progress="65"
+                        app:indicatorColor="@color/Blue"
+                        app:trackColor="@color/progress"
+                        app:trackCornerRadius="8dp"
+                        app:trackThickness="26dp"
+                        app:showAnimationBehavior="none"
+                        app:hideAnimationBehavior="none" />
 
-                <!-- Category 4 -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp"
-                    android:orientation="vertical">
-
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/welcomeCard"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        app:cardBackgroundColor="@color/healthbg"
-                        app:cardCornerRadius="30dp">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:contentDescription="@string/category_health_desc"
-                            android:src="@drawable/health"
-                            android:tint="@color/health" />
-                    </androidx.cardview.widget.CardView>
-
+                    <!-- Percentage Text Overlay -->
                     <TextView
-                        android:layout_width="match_parent"
+                        android:id="@+id/progressPercentage"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="@string/category_health_desc"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <!-- Category 5 -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="16dp">
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        app:cardCornerRadius="30dp"
-                        app:cardBackgroundColor="@color/SecondaryBtn">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/utility"
-                            android:tint="@color/Blue"
-                            android:contentDescription="@string/category_utility_desc" />
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="@string/category_utility_desc"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp" />
-                </LinearLayout>
+                        android:layout_gravity="center"
+                        android:text="65%"
+                        android:textSize="12sp"
+                        android:textColor="@color/white"
+                        android:fontFamily="sans-serif"
+                        android:textStyle="bold"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="4dp"
+                        android:backgroundTint="@color/Blue"/>
+                </FrameLayout>
             </LinearLayout>
-        </HorizontalScrollView>
 
-        <!-- Recent Transactions Title -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Recent Expenses"
-            android:textSize="20sp"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif"
-            android:layout_marginBottom="16dp"/>
+            <!-- Categories Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Categories"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif"
+                android:layout_marginBottom="16dp"/>
 
-        <!-- Empty state message -->
-        <TextView
-            android:id="@+id/emptyStateText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No expenses recorded yet.\nTap the + button to add your first expense!"
-            android:textSize="16sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center"
-            android:layout_marginTop="32dp"
-            android:layout_marginBottom="32dp"
-            android:visibility="gone" />
+            <!-- Categories Horizontal Scroll -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp">
 
-        <!-- Expenses List -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/expensesRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:clipToPadding="false"
-            android:nestedScrollingEnabled="true"
-            android:paddingBottom="16dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
-    </LinearLayout>
-</ScrollView>
+                <LinearLayout
+                    android:id="@+id/categoriesContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <!-- Category 1 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="16dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            app:cardCornerRadius="30dp"
+                            app:cardBackgroundColor="@color/foodbg">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/food"
+                                android:tint="@color/food"
+                                android:contentDescription="@string/category_food_desc" />
+                        </androidx.cardview.widget.CardView>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:text="@string/category_food_desc"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Category 2 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="16dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            app:cardCornerRadius="30dp"
+                            app:cardBackgroundColor="@color/shoppingbg">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/shopping"
+                                android:tint="@color/shopping"
+                                android:contentDescription="@string/category_shopping_desc" />
+                        </androidx.cardview.widget.CardView>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:text="@string/category_shopping_desc"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Category 3 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="16dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            app:cardCornerRadius="30dp"
+                            app:cardBackgroundColor="@color/transportbg">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/transport"
+                                android:tint="@color/transport"
+                                android:contentDescription="@string/category_transport_desc" />
+                        </androidx.cardview.widget.CardView>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:text="@string/category_transport_desc"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Category 4 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="16dp"
+                        android:orientation="vertical">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            app:cardBackgroundColor="@color/healthbg"
+                            app:cardCornerRadius="30dp">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_gravity="center"
+                                android:contentDescription="@string/category_health_desc"
+                                android:src="@drawable/health"
+                                android:tint="@color/health" />
+                        </androidx.cardview.widget.CardView>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:text="@string/category_health_desc"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Category 5 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="16dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            app:cardCornerRadius="30dp"
+                            app:cardBackgroundColor="@color/SecondaryBtn">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/utility"
+                                android:tint="@color/Blue"
+                                android:contentDescription="@string/category_utility_desc" />
+                        </androidx.cardview.widget.CardView>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:text="@string/category_utility_desc"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- Recent Transactions Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recent Expenses"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Empty state message -->
+            <TextView
+                android:id="@+id/emptyStateText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No expenses recorded yet.\nTap the + button to add your first expense!"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:layout_marginTop="32dp"
+                android:layout_marginBottom="32dp"
+                android:visibility="gone" />
+
+            <!-- Expenses List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/expensesRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="true"
+                android:paddingBottom="16dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

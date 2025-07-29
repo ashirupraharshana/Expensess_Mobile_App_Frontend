@@ -38,4 +38,8 @@
     <color name="otherbg">#FFE9E9</color>
     <color name="card_text_white">#FFFFFF</color>
 
+    <color name="error_red">#FF6B6B</color>
+    <color name="success_green">#4ECDC4</color>
+    <color name="warning_orange">#FFB347</color>
+
 </resources>

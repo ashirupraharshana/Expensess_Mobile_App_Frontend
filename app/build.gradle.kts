@@ -29,7 +29,6 @@ android {
         }
     }
 
-
     buildFeatures {
         viewBinding = true
     }
@@ -44,26 +43,40 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
+    // Material Design Components
+    implementation("com.google.android.material:material:1.10.0")
 
-    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    // Lifecycle components for LiveData
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // CardView
+    implementation("androidx.cardview:cardview:1.0.0")
+
+    // RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.5")
     implementation(libs.androidx.material3.android)
-    
+
     // Added for data persistence and backup
     implementation("com.google.code.gson:gson:2.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    
+
     // FlexboxLayout for flexible layouts
     implementation("com.google.android.flexbox:flexbox:3.0.0")
+    implementation(libs.androidx.swiperefreshlayout)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
