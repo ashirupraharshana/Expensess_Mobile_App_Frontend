@@ -2,6 +2,7 @@ package com.example.finbot.fragment
 
 import android.app.DatePickerDialog
 import android.content.Context.MODE_PRIVATE
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -25,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.util.*
 import android.graphics.Color
 import androidx.core.content.ContextCompat
+import com.example.finbot.Login
+import com.example.finbot.detection.DetectorActivity
 
 class AddExpenseFragment : Fragment() {
 
@@ -32,6 +35,7 @@ class AddExpenseFragment : Fragment() {
     private lateinit var categorySpinner: Spinner
     private lateinit var dateInput: TextView
     private lateinit var amountInput: EditText
+    private lateinit var scanButton: Button
     private lateinit var submitButton: Button
     private lateinit var cancelButton: Button
     private val calendar = Calendar.getInstance()
@@ -55,6 +59,12 @@ class AddExpenseFragment : Fragment() {
         amountInput = view.findViewById(R.id.amountInput)
         submitButton = view.findViewById(R.id.submitButton)
         cancelButton = view.findViewById(R.id.cancelButton)
+
+        scanButton = view.findViewById(R.id.scan)
+
+        scanButton.setOnClickListener {
+            startActivity(Intent(context, DetectorActivity::class.java))
+        }
 
         setupViews()
         return view
@@ -81,7 +91,7 @@ class AddExpenseFragment : Fragment() {
             }, year, month, day).show()
         }
 
-        // Setup buttons
+        // Setup button
         submitButton.setOnClickListener {
             saveExpense()
         }
@@ -121,7 +131,7 @@ class AddExpenseFragment : Fragment() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val url = URL("http://192.168.1.100:8082/api/expenses/add")
+                    val url = URL("http://192.168.8.103:8082/api/expenses/add")
                     val conn = url.openConnection() as HttpURLConnection
                     conn.requestMethod = "POST"
                     conn.setRequestProperty("Content-Type", "application/json")

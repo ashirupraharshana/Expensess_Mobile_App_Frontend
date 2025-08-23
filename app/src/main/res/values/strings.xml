@@ -6,4 +6,7 @@
     <string name="category_health_desc">Health</string>
     <string name="category_transport_desc">Transport</string>
     <string name="category_utility_desc">Utility</string>
+
+    <string name="tfe_od_camera_error" translation_description="Error regarding camera support[CHAR_LIMIT=40]">This device doesn\'t support Camera2 API.</string>
+
 </resources>

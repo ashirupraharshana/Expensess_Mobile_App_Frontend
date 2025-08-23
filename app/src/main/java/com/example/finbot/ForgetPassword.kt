@@ -163,7 +163,7 @@ class ForgetPassword : AppCompatActivity() {
 
     private fun sendPasswordResetOtp(email: String) {
         try {
-            val url = URL("http://192.168.1.100:8082/api/otp/send/password-reset")
+            val url = URL("http://192.168.8.103:8082/api/otp/send/password-reset")
             val json = JSONObject().apply {
                 put("email", email)
             }
@@ -255,7 +255,7 @@ class ForgetPassword : AppCompatActivity() {
 
     private fun verifyOtp(email: String, otpCode: String, dialog: androidx.appcompat.app.AlertDialog) {
         try {
-            val url = URL("http://192.168.1.100:8082/api/otp/verify")
+            val url = URL("http://192.168.8.103:8082/api/otp/verify")
             val json = JSONObject().apply {
                 put("email", email)
                 put("otpCode", otpCode)
@@ -307,7 +307,7 @@ class ForgetPassword : AppCompatActivity() {
 
     private fun resendOtp(email: String, resendBtn: Button) {
         try {
-            val url = URL("http://192.168.1.100:8082/api/otp/resend")
+            val url = URL("http://192.168.8.103:8082/api/otp/resend")
             val json = JSONObject().apply {
                 put("email", email)
                 put("purpose", "PASSWORD_RESET")
@@ -357,7 +357,7 @@ class ForgetPassword : AppCompatActivity() {
 
             // For now, let's assume we have a password update endpoint
             // You'll need to add this to your backend
-            val url = URL("http://192.168.1.100:8082/api/users/update-password")
+            val url = URL("http://192.168.8.103:8082/api/users/update-password")
             val json = JSONObject().apply {
                 put("email", email)
                 put("newPassword", newPassword)

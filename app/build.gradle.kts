@@ -49,6 +49,10 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
+    implementation("org.tensorflow:tensorflow-lite:2.4.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.4.0")
+
+
     // Material Design Components
     implementation("com.google.android.material:material:1.10.0")
 

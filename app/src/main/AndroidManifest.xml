@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <!-- Permissions for notifications and storage access -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -49,6 +54,11 @@
             android:name=".Login"
             android:exported="true" /> <!-- Broadcast receiver for alarm reminders -->
         <activity android:name=".ForgetPassword" />
+
+
+        <activity
+            android:name=".detection.DetectorActivity"
+            android:label="@string/app_name"/>
 
         <receiver
             android:name=".util.NotificationHelper$ReminderReceiver"
