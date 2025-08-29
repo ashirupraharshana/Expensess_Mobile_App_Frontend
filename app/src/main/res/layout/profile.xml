@@ -242,7 +242,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Backup &amp; Restore"
+                    android:text="Download Reports"
                     android:textSize="18sp"
                     android:textColor="@color/text_primary"
                     android:fontFamily="sans-serif"
@@ -250,22 +250,23 @@
                     android:layout_marginBottom="8dp" />
 
                 <Button
-                    android:id="@+id/exportTextButton"
+                    android:id="@+id/downloadExpensesPDF"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Export Data as Text"
+                    android:text="Export Expenses Data as PDF"
                     android:backgroundTint="@color/progress"
                     android:textColor="@color/white"
                     android:layout_marginBottom="8dp" />
 
                 <Button
-                    android:id="@+id/restoreDataButton"
+                    android:id="@+id/downloadEarningPDF"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Restore From Backup"
-                    android:backgroundTint="@color/shopping"
+                    android:text="Export Earning Data as PDF"
+                    android:backgroundTint="@color/progress"
                     android:textColor="@color/white"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="8dp" />
+
 
                 <!-- Dark Mode Toggle -->
                 <LinearLayout

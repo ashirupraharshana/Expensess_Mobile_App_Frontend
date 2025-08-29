@@ -19,11 +19,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.finbot.R
 import com.example.finbot.adapter.ExpenseAdapter
 import com.example.finbot.model.Expense
-import com.example.finbot.util.NetworkErrorHandler
 import com.example.finbot.util.NetworkUtils
 import com.example.finbot.util.NotificationHelper
 import com.example.finbot.util.SharedPreferencesManager
-import com.example.finbot.util.SnackbarUtil
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.net.HttpURLConnection
 import java.net.URL
@@ -36,7 +34,6 @@ import java.util.*
 import android.app.PendingIntent
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import android.graphics.Color
 import android.widget.TextView
 import com.google.android.material.snackbar.Snackbar
 import android.animation.ValueAnimator
@@ -61,7 +58,6 @@ class homeFragment : Fragment() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var notificationHelper: NotificationHelper
     private lateinit var adapter: ExpenseAdapter
-    private lateinit var networkErrorHandler: NetworkErrorHandler
     private lateinit var networkUtils: NetworkUtils
 
     // Categories used for expense spinner
@@ -98,13 +94,6 @@ class homeFragment : Fragment() {
         notificationHelper = NotificationHelper.getInstance(requireContext())
         networkUtils = NetworkUtils.getInstance(requireContext())
 
-        // Initialize network error handler
-        val errorContainer = view.findViewById<ViewGroup>(R.id.networkErrorContainer)
-        networkErrorHandler = NetworkErrorHandler.create(requireContext(), errorContainer) {
-            // Retry callback
-            retryNetworkOperations()
-        }
-
         // Initialize views
         recyclerView = view.findViewById(R.id.expensesRecyclerView)
         emptyStateTextView = view.findViewById(R.id.emptyStateText)
@@ -125,8 +114,7 @@ class homeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize network error handler with lifecycle
-        networkErrorHandler.initialize(viewLifecycleOwner)
+
 
         // Animate UI elements when fragment is created
         animateUIElements()
@@ -150,32 +138,52 @@ class homeFragment : Fragment() {
     }
 
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Cleanup network resources
-        if (::networkErrorHandler.isInitialized) {
-            networkErrorHandler.cleanup()
-        }
-    }
-
-    private fun retryNetworkOperations() {
-        // Always attempt retry - methods will handle their own error states
-        loadUsernameFromBackend()
-        fetchCurrencyFromBackend()
-        loadExpenses()
-        updateBudgetInfo()
-        fetchAndDisplayTotalExpensesWithAnimation()
-    }
-
-
     private fun getUserIdFromSession(): String {
         val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
         return sharedPref.getString("user_id", "") ?: ""
     }
 
+    private fun loadDefaultCurrency() {
+        activity?.runOnUiThread {
+            safeUIUpdate {
+                // Try to get cached currency first, otherwise use LKR as default
+                val cachedCurrency = sharedPrefsManager.getCurrency()
+                if (cachedCurrency.isEmpty()) {
+                    sharedPrefsManager.setCurrency("LKR")
+                }
+                updateBudgetInfo()
+                fetchAndDisplayTotalExpenses()
+            }
+        }
+    }
+
+
+    private fun showInfoSnackbar(message: String) {
+        try {
+            val snackbar = Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG)
+            snackbar.setBackgroundTint(
+                ContextCompat.getColor(requireContext(), R.color.Blue)
+            )
+            snackbar.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.white)
+            )
+            snackbar.show()
+        } catch (e: Exception) {
+            println("Failed to show info snackbar: ${e.message}")
+        }
+    }
+
     private fun fetchCurrencyFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) {
+            // Set default currency when no user session
+            activity?.runOnUiThread {
+                safeUIUpdate {
+                    sharedPrefsManager.setCurrency("USD") // or your preferred default
+                    updateBudgetInfo()
+                    fetchAndDisplayTotalExpenses()
+                }
+            }
             return
         }
 
@@ -196,66 +204,65 @@ class homeFragment : Fragment() {
                     val currencyId = try {
                         response.trim().toInt()
                     } catch (e: NumberFormatException) {
-                        0
+                        0 // Default to LKR if parsing fails
                     }
 
                     val currencyString = currencyMap[currencyId] ?: "LKR"
 
-                    if (isAdded && context != null) {
-                        val currentActivity = activity
-                        currentActivity?.runOnUiThread {
-                            if (!isAdded || context == null) return@runOnUiThread
+                    activity?.runOnUiThread {
+                        safeUIUpdate {
+                            sharedPrefsManager.setCurrency(currencyString)
+                            updateBudgetInfo()
+                            fetchAndDisplayTotalExpenses()
+                        }
+                    }
+                } else if (responseCode == 404) {
+                    // Budget not found for user - create default budget entry
+                    activity?.runOnUiThread {
+                        safeUIUpdate {
+                            // Set default currency
+                            val defaultCurrency = "LKR"
+                            sharedPrefsManager.setCurrency(defaultCurrency)
 
-                            try {
-                                sharedPrefsManager.setCurrency(currencyString)
-                                updateBudgetInfo()
-                                fetchAndDisplayTotalExpenses()
-                            } catch (e: IllegalStateException) {
-                                println("Fragment detached during currency update: ${e.message}")
-                            }
+                            // Show user-friendly message instead of error
+                            showInfoSnackbar("Budget not set. Please configure your budget in settings.")
+
+                            updateBudgetInfo()
+                            fetchAndDisplayTotalExpenses()
                         }
                     }
                 } else {
-                    // Only show server error UI messages, don't show for network issues when online
-                    if (isAdded && context != null) {
-                        activity?.runOnUiThread {
-                            when (responseCode) {
-                                404 -> networkErrorHandler.showServerError(404)
-                                in 500..599 -> networkErrorHandler.showServerError(responseCode)
-                                // Don't show UI for other HTTP errors when online
-                            }
-                        }
+                    activity?.runOnUiThread {
+                        handleHttpErrorResponse(responseCode, "Currency fetch")
+                        // Fallback to cached or default currency
+                        loadDefaultCurrency()
                     }
-                    println("Currency fetch failed with response code: $responseCode")
                 }
                 connection.disconnect()
             } catch (e: SocketTimeoutException) {
                 println("Timeout fetching currency: ${e.message}")
-                if (shouldShowNetworkError()) {
-                    handleNetworkException(e, "Connection timeout while fetching currency")
-                }
+                loadDefaultCurrency()
             } catch (e: ConnectException) {
                 println("Connection failed fetching currency: ${e.message}")
-                if (shouldShowNetworkError()) {
-                    handleNetworkException(e, "Unable to connect to server")
-                }
+                loadDefaultCurrency()
             } catch (e: UnknownHostException) {
-                handleNetworkException(e, "Network unavailable")
+                loadDefaultCurrency()
             } catch (e: Exception) {
                 println("Error fetching currency: ${e.message}")
-                if (shouldShowNetworkError()) {
-                    handleNetworkException(e, "Error fetching currency")
-                }
+                loadDefaultCurrency()
             }
         }
     }
 
 
+
     private fun loadUsernameFromBackend() {
         val userId = getUserIdFromSession()
         if (userId.isEmpty()) {
-            if (isAdded && ::welcomeNote.isInitialized) {
-                welcomeNote.text = "Welcome, User"
+            safeUIUpdate {
+                if (::welcomeNote.isInitialized) {
+                    welcomeNote.text = "Welcome, User"
+                }
             }
             return
         }
@@ -275,65 +282,44 @@ class homeFragment : Fragment() {
                     val response = inputStream.bufferedReader().use { it.readText() }
                     val username = response.trim()
 
-                    if (isAdded && context != null) {
-                        val currentActivity = activity
-                        currentActivity?.runOnUiThread {
-                            if (!isAdded || context == null) return@runOnUiThread
-
-                            try {
-                                welcomeNote.text = "Welcome, $username"
-                                val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
-                                sharedPref.edit().putString("username", username).apply()
-                            } catch (e: IllegalStateException) {
-                                println("Fragment detached during username update: ${e.message}")
-                            }
+                    activity?.runOnUiThread {
+                        safeUIUpdate {
+                            welcomeNote.text = "Welcome, $username"
+                            val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
+                            sharedPref.edit().putString("username", username).apply()
                         }
                     }
                 } else {
-                    // Handle error responses - show cached data and optionally show server errors
-                    if (isAdded && context != null) {
-                        activity?.runOnUiThread {
-                            when (responseCode) {
-                                404 -> networkErrorHandler.showServerError(404)
-                                in 500..599 -> networkErrorHandler.showServerError(responseCode)
-                            }
-
-                            // Always fallback to cached username
-                            if (::welcomeNote.isInitialized) {
-                                val sharedPref = requireContext().getSharedPreferences("user_session", MODE_PRIVATE)
-                                val cachedUsername = sharedPref.getString("username", "User")
-                                welcomeNote.text = "Welcome, $cachedUsername"
-                            }
-                        }
+                    activity?.runOnUiThread {
+                        handleHttpErrorResponse(responseCode, "Username fetch")
+                        // Always fallback to cached username
+                        loadCachedUsername()
                     }
                     println("Username fetch failed with response code: $responseCode")
                 }
                 connection.disconnect()
             } catch (e: SocketTimeoutException) {
                 println("Timeout loading username: ${e.message}")
-                if (shouldShowNetworkError()) {
-                    handleNetworkException(e, "Connection timeout while loading username")
-                }
-                // Always fallback to cached data
+                handleNetworkException(e, "Connection timeout while loading username")
                 loadCachedUsername()
             } catch (e: ConnectException) {
                 println("Connection failed loading username: ${e.message}")
-                if (shouldShowNetworkError()) {
-                    handleNetworkException(e, "Unable to connect to server")
-                }
+                handleNetworkException(e, "Unable to connect to server")
                 loadCachedUsername()
             } catch (e: UnknownHostException) {
                 handleNetworkException(e, "Network unavailable")
                 loadCachedUsername()
             } catch (e: Exception) {
                 println("Error loading username: ${e.message}")
-                if (shouldShowNetworkError()) {
-                    handleNetworkException(e, "Error loading username")
-                }
+                handleNetworkException(e, "Error loading username")
                 loadCachedUsername()
             }
         }
     }
+
+
+
+
     private fun loadCachedUsername() {
         if (isAdded && context != null) {
             activity?.runOnUiThread {
@@ -352,26 +338,93 @@ class homeFragment : Fragment() {
         }
     }
 
+    private fun safeUIUpdate(action: () -> Unit) {
+        if (isAdded && context != null && view != null) {
+            try {
+                action()
+            } catch (e: IllegalStateException) {
+                println("Fragment not properly attached: ${e.message}")
+            }
+        }
+    }
+
     private fun handleNetworkException(exception: Exception, context: String) {
         println("$context: ${exception.message}")
         if (isAdded && this.context != null) {
             activity?.runOnUiThread {
-                if (!isAdded || this.context == null) return@runOnUiThread
-
-                // Only show network error UI if actually offline
-                when (exception) {
-                    is UnknownHostException -> {
-                        // Always show for DNS issues
-                        networkErrorHandler.showError(exception)
-                    }
-                    else -> {
-                        if (shouldShowNetworkError()) {
-                            networkErrorHandler.showError(exception)
+                safeUIUpdate {
+                    when (exception) {
+                        is UnknownHostException -> {
+                            showNetworkErrorSnackbar("No internet connection available")
                         }
-                        // If online, just log the error without showing UI
+                        is SocketTimeoutException -> {
+                            showNetworkErrorSnackbar("Connection timeout. Please try again.")
+                        }
+                        is ConnectException -> {
+                            showNetworkErrorSnackbar("Unable to connect to server")
+                        }
+                        else -> {
+                            if (shouldShowNetworkError()) {
+                                showNetworkErrorSnackbar("Network error occurred")
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+
+
+    private fun showErrorSnackbar(message: String) {
+        try {
+            val snackbar = Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT)
+            snackbar.setBackgroundTint(
+                ContextCompat.getColor(requireContext(), R.color.transport)
+            )
+            snackbar.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.white)
+            )
+            snackbar.show()
+        } catch (e: Exception) {
+            println("Failed to show error snackbar: ${e.message}")
+        }
+    }
+
+    private fun handleHttpErrorResponse(responseCode: Int, operation: String) {
+        safeUIUpdate {
+            when (responseCode) {
+                404 -> {
+                    showErrorSnackbar("$operation: Data not found")
+                }
+                401 -> {
+                    showErrorSnackbar("Authentication required. Please log in again.")
+                }
+                403 -> {
+                    showErrorSnackbar("Access denied")
+                }
+                in 500..599 -> {
+                    showErrorSnackbar("Server error. Please try again later.")
+                }
+                else -> {
+                    showErrorSnackbar("$operation failed. Please try again.")
+                }
+            }
+        }
+    }
+
+    private fun showNetworkErrorSnackbar(message: String) {
+        try {
+            val snackbar = Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT)
+            snackbar.setBackgroundTint(
+                ContextCompat.getColor(requireContext(), R.color.transport)
+            )
+            snackbar.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.white)
+            )
+            snackbar.show()
+        } catch (e: Exception) {
+            println("Failed to show network error snackbar: ${e.message}")
         }
     }
 
@@ -415,9 +468,9 @@ class homeFragment : Fragment() {
                         activity?.runOnUiThread {
                             // Only show server errors, not network errors when online
                             if (responseCode == 404) {
-                                networkErrorHandler.showServerError(404)
+
                             } else if (responseCode >= 500) {
-                                networkErrorHandler.showServerError(responseCode)
+
                             }
                             // Don't show anything for other errors - just log them
                         }
@@ -518,9 +571,9 @@ class homeFragment : Fragment() {
                         activity?.runOnUiThread {
                             // Only show server errors, not network errors when online
                             if (responseCode == 404) {
-                                networkErrorHandler.showServerError(404)
+
                             } else if (responseCode >= 500) {
-                                networkErrorHandler.showServerError(responseCode)
+
                             }
                             // Don't show anything for other errors - just log them
                         }
@@ -540,34 +593,70 @@ class homeFragment : Fragment() {
         }
     }
 
-    // Enhanced updateBudgetInfo with error handling
+    private fun updateUIColors(percentUsed: Int, hasBudget: Boolean) {
+        try {
+            val context = requireContext()
+
+            if (!hasBudget) {
+                // Default colors when no budget is set
+                budgetTextView.setTextColor(context.getColor(R.color.text_secondary))
+                progressBar.setIndicatorColor(context.getColor(R.color.Blue))
+                limitText.setTextColor(context.getColor(R.color.text_secondary))
+                progressPercentage.setTextColor(context.getColor(R.color.text_primary))
+                return
+            }
+
+            when {
+                percentUsed >= 100 -> {
+                    budgetTextView.setTextColor(context.getColor(R.color.transport))
+                    progressBar.setIndicatorColor(context.getColor(R.color.transport))
+                    limitText.setTextColor(context.getColor(R.color.transport))
+                    progressPercentage.setTextColor(context.getColor(R.color.white))
+                }
+                percentUsed >= 90 -> {
+                    budgetTextView.setTextColor(context.getColor(R.color.transport))
+                    progressBar.setIndicatorColor(context.getColor(R.color.transport))
+                    limitText.setTextColor(context.getColor(R.color.transport))
+                    progressPercentage.setTextColor(context.getColor(R.color.white))
+                }
+                percentUsed >= 75 -> {
+                    budgetTextView.setTextColor(context.getColor(R.color.food))
+                    progressBar.setIndicatorColor(context.getColor(R.color.food))
+                    limitText.setTextColor(context.getColor(R.color.food))
+                    progressPercentage.setTextColor(context.getColor(R.color.text_primary))
+                }
+                else -> {
+                    budgetTextView.setTextColor(context.getColor(R.color.text_primary))
+                    progressBar.setIndicatorColor(context.getColor(R.color.Blue))
+                    limitText.setTextColor(context.getColor(R.color.Blue))
+                    progressPercentage.setTextColor(context.getColor(R.color.text_primary))
+                }
+            }
+        } catch (e: Exception) {
+            println("Error updating UI colors: ${e.message}")
+        }
+    }
+
     private fun updateBudgetInfo() {
         val currency = sharedPrefsManager.getCurrency()
         val userId = getUserIdFromSession()
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Fetch total expenses
+                // Fetch total expenses first
                 val expenseUrl = URL("http://192.168.22.87:8082/api/expenses/total?userId=$userId")
                 val expenseConnection = expenseUrl.openConnection() as HttpURLConnection
                 expenseConnection.requestMethod = "GET"
                 expenseConnection.connectTimeout = 8000
                 expenseConnection.readTimeout = 8000
 
-                val expenseResponseCode = expenseConnection.responseCode
-                val expenseResponse = if (expenseResponseCode == HttpURLConnection.HTTP_OK) {
-                    expenseConnection.inputStream.bufferedReader().use { it.readText() }
+                val totalExpenses = if (expenseConnection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val response = expenseConnection.inputStream.bufferedReader().use { it.readText() }
+                    response.toDoubleOrNull() ?: 0.0
                 } else {
                     expenseConnection.disconnect()
-                    if (expenseResponseCode == 404) {
-                        activity?.runOnUiThread { networkErrorHandler.showServerError(404) }
-                    } else if (expenseResponseCode >= 500) {
-                        activity?.runOnUiThread { networkErrorHandler.showServerError(expenseResponseCode) }
-                    }
-                    return@launch
+                    0.0 // Default to 0 if expenses can't be fetched
                 }
-
-                val totalExpenses = expenseResponse.toDoubleOrNull() ?: 0.0
 
                 // Fetch budget from backend
                 val budgetUrl = URL("http://192.168.22.87:8082/api/budget/get?userId=$userId")
@@ -577,135 +666,80 @@ class homeFragment : Fragment() {
                 budgetConnection.readTimeout = 8000
 
                 val responseCode = budgetConnection.responseCode
-                val budgetResponse = if (responseCode == HttpURLConnection.HTTP_OK) {
-                    budgetConnection.inputStream.bufferedReader().use { it.readText() }
-                } else {
-                    val errorResponse = budgetConnection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                    budgetConnection.disconnect()
-                    expenseConnection.disconnect()
-
-                    if (responseCode == 404) {
-                        activity?.runOnUiThread { networkErrorHandler.showServerError(404) }
-                    } else if (responseCode >= 500) {
-                        activity?.runOnUiThread { networkErrorHandler.showServerError(responseCode) }
-                    }
-                    return@launch
-                }
-
-                // Parse budget
-                val budget = if (budgetResponse.isNullOrEmpty()) {
-                    0.0
-                } else {
+                val budget = if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val budgetResponse = budgetConnection.inputStream.bufferedReader().use { it.readText() }
                     try {
                         val budgetJson = JSONObject(budgetResponse)
                         budgetJson.optDouble("budget", 0.0)
                     } catch (jsonException: Exception) {
-                        try {
-                            budgetResponse.trim().toDoubleOrNull() ?: 0.0
-                        } catch (numberException: Exception) {
-                            if (budgetResponse.contains("error", ignoreCase = true)) {
-                                println("Budget API error: $budgetResponse")
-                                0.0
-                            } else {
-                                0.0
-                            }
-                        }
+                        budgetResponse.trim().toDoubleOrNull() ?: 0.0
                     }
+                } else if (responseCode == 404) {
+                    // No budget set for user
+                    0.0
+                } else {
+                    budgetConnection.disconnect()
+                    expenseConnection.disconnect()
+                    return@launch
                 }
 
-                val percentUsed = if (budget > 0) ((totalExpenses / budget) * 100).toInt() else 0
+                // Calculate percentage with proper validation
+                val percentUsed = if (budget > 0) {
+                    ((totalExpenses / budget) * 100).toInt()
+                } else {
+                    0
+                }
 
-                // Check if fragment is still attached before updating UI
+                // Update UI on main thread
                 if (isAdded && context != null) {
-                    val currentActivity = activity
-                    if (currentActivity != null) {
-                        currentActivity.runOnUiThread {
-                            // Double-check fragment is still attached
-                            if (!isAdded || context == null) return@runOnUiThread
+                    activity?.runOnUiThread {
+                        if (!isAdded || context == null) return@runOnUiThread
 
-                            // Handle notifications
-                            val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
-                            if (notificationsEnabled && budget > 0) {
-                                // Check if we should reset the exceeded notification flag
-                                checkAndResetExceededNotification(percentUsed)
+                        try {
+                            // Update total expenses with consistent currency
+                            totalExpenseTextView.text = "$currency ${String.format("%.2f", totalExpenses)}"
 
-                                // Handle budget notifications
-                                handleBudgetNotifications(
-                                    percentUsed,
-                                    totalExpenses,
-                                    budget,
-                                    currency
-                                )
-                            }
-
-                            // Update UI only if fragment is still attached
-                            try {
-                                totalExpenseTextView.text =
-                                    "$currency ${String.format("%.2f", totalExpenses)}"
-                                budgetTextView.text = "Budget: $currency ${
-                                    String.format(
-                                        "%.2f",
-                                        budget
-                                    )
-                                } ($percentUsed% used)"
-                                progressBar.progress = percentUsed
+                            // Update budget display
+                            if (budget > 0) {
+                                budgetTextView.text = "Budget: $currency ${String.format("%.2f", budget)} ($percentUsed% used)"
+                                progressBar.progress = percentUsed.coerceIn(0, 100)
                                 progressPercentage.text = "$percentUsed%"
                                 spentPercentText.text = "Spent: $percentUsed%"
-                                limitText.text =
-                                    "of $currency ${String.format("%.2f", budget)} limit"
-
-                                // Enhanced color changes with more granular states
-                                val context = requireContext()
-                                when {
-                                    percentUsed >= 100 -> {
-                                        budgetTextView.setTextColor(context.getColor(R.color.transport))
-                                        progressBar.setIndicatorColor(context.getColor(R.color.transport))
-                                        limitText.setTextColor(context.getColor(R.color.transport))
-                                        progressPercentage.setTextColor(context.getColor(R.color.white))
-                                    }
-
-                                    percentUsed >= 90 -> {
-                                        budgetTextView.setTextColor(context.getColor(R.color.transport))
-                                        progressBar.setIndicatorColor(context.getColor(R.color.transport))
-                                        limitText.setTextColor(context.getColor(R.color.transport))
-                                        progressPercentage.setTextColor(context.getColor(R.color.white))
-                                    }
-
-                                    percentUsed >= 75 -> {
-                                        budgetTextView.setTextColor(context.getColor(R.color.food))
-                                        progressBar.setIndicatorColor(context.getColor(R.color.food))
-                                        limitText.setTextColor(context.getColor(R.color.food))
-                                    }
-
-                                    else -> {
-                                        budgetTextView.setTextColor(context.getColor(R.color.food))
-                                        progressBar.setIndicatorColor(context.getColor(R.color.Blue))
-                                        limitText.setTextColor(context.getColor(R.color.Blue))
-                                        progressPercentage.setTextColor(context.getColor(R.color.black))
-                                    }
-                                }
-                            } catch (e: IllegalStateException) {
-                                // Fragment is no longer attached, ignore UI updates
-                                println("Fragment detached during UI update: ${e.message}")
+                                limitText.text = "of $currency ${String.format("%.2f", budget)} limit"
+                            } else {
+                                // Show when no budget is set
+                                budgetTextView.text = "No budget set"
+                                progressBar.progress = 0
+                                progressPercentage.text = "0%"
+                                spentPercentText.text = "Spent: $currency ${String.format("%.2f", totalExpenses)}"
+                                limitText.text = "Set budget in settings"
                             }
+
+                            // Handle notifications only if budget exists
+                            if (budget > 0) {
+                                val notificationsEnabled = sharedPrefsManager.areNotificationsEnabled()
+                                if (notificationsEnabled) {
+                                    checkAndResetExceededNotification(percentUsed)
+                                    handleBudgetNotifications(percentUsed, totalExpenses, budget, currency)
+                                }
+                            }
+
+                            // Update colors based on percentage
+                            updateUIColors(percentUsed, budget > 0)
+
+                        } catch (e: IllegalStateException) {
+                            println("Fragment detached during UI update: ${e.message}")
                         }
                     }
                 }
 
-                // Close connections
                 expenseConnection.disconnect()
                 budgetConnection.disconnect()
 
-            } catch (e: SocketTimeoutException) {
-                handleNetworkException(e, "Timeout while updating budget info")
-            } catch (e: ConnectException) {
-                handleNetworkException(e, "Connection failed while updating budget")
-            } catch (e: UnknownHostException) {
-                handleNetworkException(e, "Network unavailable")
             } catch (e: Exception) {
                 handleNetworkException(e, "Error updating budget info")
 
-                // Set default values in case of error
+                // Set safe default values
                 if (isAdded && context != null) {
                     activity?.runOnUiThread {
                         if (!isAdded || context == null) return@runOnUiThread
@@ -718,7 +752,6 @@ class homeFragment : Fragment() {
                             spentPercentText.text = "Spent: 0%"
                             limitText.text = "of $currency 0.00 limit"
                         } catch (ex: IllegalStateException) {
-                            // Fragment is no longer attached, ignore
                             println("Fragment detached during error handling: ${ex.message}")
                         }
                     }
@@ -726,6 +759,7 @@ class homeFragment : Fragment() {
             }
         }
     }
+
 
     private fun handleBudgetNotifications(
         percentUsed: Int,
@@ -1068,59 +1102,32 @@ class homeFragment : Fragment() {
 
                 requireActivity().runOnUiThread {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val snackbar = Snackbar.make(
-                            requireView(),
-                            "Expense updated successfully",
-                            3000
-                        )
-                        snackbar.setBackgroundTint(
-                            ContextCompat.getColor(
-                                requireContext(),
-                                R.color.snackbar_background_light
-                            )
-                        )
-                        snackbar.setTextColor(
-                            ContextCompat.getColor(
-                                requireContext(),
-                                R.color.snackbar_text_light
-                            )
-                        )
-                        snackbar.show()
-
-                        loadExpenses()
-                        updateBudgetInfo()
-                        animateAfterUpdate() // Use animated version instead of fetchAndDisplayTotalExpenses()
-
-                        try {
-                            notificationHelper.checkAndShowBudgetAlertIfNeeded()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    } else {
-                        if (responseCode == 404) {
-                            networkErrorHandler.showServerError(404)
-                        } else if (responseCode >= 500) {
-                            networkErrorHandler.showServerError(responseCode)
-                        } else {
+                        safeUIUpdate {
                             val snackbar = Snackbar.make(
                                 requireView(),
-                                "Failed to update expense",
-                                Snackbar.LENGTH_SHORT
+                                "Expense updated successfully",
+                                3000
                             )
                             snackbar.setBackgroundTint(
-                                ContextCompat.getColor(
-                                    requireContext(),
-                                    R.color.snackbar_background_light
-                                )
+                                ContextCompat.getColor(requireContext(), R.color.food)
                             )
                             snackbar.setTextColor(
-                                ContextCompat.getColor(
-                                    requireContext(),
-                                    R.color.snackbar_text_light
-                                )
+                                ContextCompat.getColor(requireContext(), R.color.white)
                             )
                             snackbar.show()
+
+                            loadExpenses()
+                            updateBudgetInfo()
+                            animateAfterUpdate()
+
+                            try {
+                                notificationHelper.checkAndShowBudgetAlertIfNeeded()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
+                    } else {
+                        handleHttpErrorResponse(responseCode, "Update expense")
                     }
                 }
 
@@ -1137,6 +1144,7 @@ class homeFragment : Fragment() {
             }
         }
     }
+
 
     private fun getCategoryIconResId(category: String): Int {
         return when (category) {
@@ -1195,51 +1203,28 @@ class homeFragment : Fragment() {
 
                 requireActivity().runOnUiThread {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val snackbar = Snackbar.make(requireView(), "Expense deleted", 2500)
-                        snackbar.setBackgroundTint(
-                            ContextCompat.getColor(
-                                requireContext(),
-                                R.color.snackbar_background_light
+                        safeUIUpdate {
+                            val snackbar = Snackbar.make(requireView(), "Expense deleted", 2500)
+                            snackbar.setBackgroundTint(
+                                ContextCompat.getColor(requireContext(), R.color.food)
                             )
-                        )
-                        snackbar.setTextColor(
-                            ContextCompat.getColor(
-                                requireContext(),
-                                R.color.snackbar_text_light
+                            snackbar.setTextColor(
+                                ContextCompat.getColor(requireContext(), R.color.white)
                             )
-                        )
-                        snackbar.show()
+                            snackbar.show()
 
-                        loadExpenses()
-                        updateBudgetInfo()
-                        animateAfterDelete() // Use animated version instead of fetchAndDisplayTotalExpenses()
+                            loadExpenses()
+                            updateBudgetInfo()
+                            animateAfterDelete()
 
-                        try {
-                            notificationHelper.checkAndShowBudgetAlertIfNeeded()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                            try {
+                                notificationHelper.checkAndShowBudgetAlertIfNeeded()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     } else {
-                        if (responseCode == 404) {
-                            networkErrorHandler.showServerError(404)
-                        } else if (responseCode >= 500) {
-                            networkErrorHandler.showServerError(responseCode)
-                        } else {
-                            val snackbar = Snackbar.make(
-                                requireView(),
-                                "Failed to delete expense",
-                                Snackbar.LENGTH_SHORT
-                            )
-                            val snackbarView = snackbar.view
-                            snackbarView.background = ContextCompat.getDrawable(
-                                requireContext(),
-                                R.drawable.snackbar_background
-                            )
-                            val textView =
-                                snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
-                            textView.setTextColor(Color.WHITE)
-                            snackbar.show()
-                        }
+                        handleHttpErrorResponse(responseCode, "Delete expense")
                     }
                 }
 
@@ -1256,6 +1241,7 @@ class homeFragment : Fragment() {
             }
         }
     }
+
 
     private fun animateUIElements() {
         // Welcome card animation
@@ -1435,12 +1421,6 @@ class homeFragment : Fragment() {
                     // Handle specific error codes - only show UI errors when appropriate
                     if (isAdded && context != null) {
                         activity?.runOnUiThread {
-                            // Only show server errors, not network errors when online
-                            if (responseCode == 404) {
-                                networkErrorHandler.showServerError(404)
-                            } else if (responseCode >= 500) {
-                                networkErrorHandler.showServerError(responseCode)
-                            }
                             // Don't show anything for other errors - just log them
                         }
                     }
@@ -1556,11 +1536,7 @@ class homeFragment : Fragment() {
                     if (isAdded && context != null) {
                         activity?.runOnUiThread {
                             // Only show server errors, not network errors when online
-                            if (responseCode == 404) {
-                                networkErrorHandler.showServerError(404)
-                            } else if (responseCode >= 500) {
-                                networkErrorHandler.showServerError(responseCode)
-                            }
+
                             // Don't show anything for other errors - just log them
                         }
                     }
@@ -1585,6 +1561,8 @@ class homeFragment : Fragment() {
         currency: String,
         animationType: AnimationType
     ) {
+        if (!isAdded || context == null) return
+
         val animator = ValueAnimator.ofFloat(fromValue.toFloat(), toValue.toFloat())
         animator.duration = when (animationType) {
             AnimationType.ADD -> 800L
@@ -1600,21 +1578,26 @@ class homeFragment : Fragment() {
         val originalColor = textView.currentTextColor
 
         animator.addUpdateListener { valueAnimator ->
-            val animatedValue = valueAnimator.animatedValue as Float
-            textView.text = "$currency ${String.format("%.2f", animatedValue)}"
+            if (isAdded && context != null) {
+                val animatedValue = valueAnimator.animatedValue as Float
+                safeUIUpdate {
+                    textView.text = "$currency ${String.format("%.2f", animatedValue)}"
+                }
+            }
         }
 
         animator.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationStart(animation: Animator) {
-                // Change color at start for visual feedback
-                textView.setTextColor(animationColor)
+                safeUIUpdate {
+                    textView.setTextColor(animationColor)
+                }
             }
 
             override fun onAnimationEnd(animation: Animator) {
-                // Restore original color
-                textView.setTextColor(originalColor)
-                // Ensure final value is exact
-                textView.text = "$currency ${String.format("%.2f", toValue)}"
+                safeUIUpdate {
+                    textView.setTextColor(originalColor)
+                    textView.text = "$currency ${String.format("%.2f", toValue)}"
+                }
             }
         })
 
@@ -1677,9 +1660,8 @@ class homeFragment : Fragment() {
                         activity?.runOnUiThread {
                             // Only show server errors, not network errors when online
                             if (responseCode == 404) {
-                                networkErrorHandler.showServerError(404)
                             } else if (responseCode >= 500) {
-                                networkErrorHandler.showServerError(responseCode)
+
                             }
                             // Don't show anything for other errors - just log them
                         }

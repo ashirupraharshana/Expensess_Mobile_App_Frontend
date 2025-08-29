@@ -6,12 +6,6 @@
     android:orientation="vertical"
     android:background="@color/primary_background">
 
-    <!-- Network Error Container - This will be populated by NetworkErrorHandler -->
-    <FrameLayout
-        android:id="@+id/networkErrorContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
     <!-- Main Content ScrollView -->
     <ScrollView
         android:layout_width="match_parent"

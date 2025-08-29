@@ -88,10 +88,6 @@ class profileFragment : Fragment() {
         alertThresholdLayout = view.findViewById(R.id.alertThresholdLayout)
         view.findViewById<Button>(R.id.saveNotificationButton).setOnClickListener { saveNotificationSettings() }
 
-        // Remove backup/restore buttons since we're using backend only
-        view.findViewById<Button>(R.id.exportTextButton)?.visibility = View.GONE
-        view.findViewById<Button>(R.id.restoreDataButton)?.visibility = View.GONE
-
         // Setup dark mode toggle
         setupDarkModeToggle(view)
 
