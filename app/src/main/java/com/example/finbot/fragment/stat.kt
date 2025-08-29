@@ -110,7 +110,7 @@ class statFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.8.103:8082/api/expenses/user?userId=$userId")
+                val url = URL("http://192.168.22.87:8082/api/expenses/user?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
 
@@ -166,7 +166,7 @@ class statFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.8.103:8082/api/earnings/user/$userId")
+                val url = URL("http://192.168.22.87:8082/api/earnings/user/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
 

@@ -133,7 +133,7 @@ class Register : AppCompatActivity() {
 
     private fun sendOtpRequest(email: String) {
         try {
-            val url = URL("http://192.168.8.103:8082/api/otp/send/registration")
+            val url = URL("http://192.168.22.87:8082/api/otp/send/registration")
             val json = JSONObject().apply {
                 put("email", email)
             }
@@ -186,7 +186,7 @@ class Register : AppCompatActivity() {
 
     private fun verifyOtpRequest(email: String, otpCode: String) {
         try {
-            val url = URL("http://192.168.8.103:8082/api/otp/verify")
+            val url = URL("http://192.168.22.87:8082/api/otp/verify")
             val json = JSONObject().apply {
                 put("email", email)
                 put("otpCode", otpCode)
@@ -235,7 +235,7 @@ class Register : AppCompatActivity() {
 
     private fun sendRegisterRequest(username: String, email: String, password: String) {
         try {
-            val url = URL("http://192.168.8.103:8082/api/users/register")
+            val url = URL("http://192.168.22.87:8082/api/users/register")
             val json = JSONObject().apply {
                 put("username", username)
                 put("email", email)

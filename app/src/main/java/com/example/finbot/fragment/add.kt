@@ -1,5 +1,6 @@
 package com.example.finbot.fragment
 
+import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
@@ -25,6 +26,7 @@ import java.text.SimpleDateFormat
 import kotlinx.coroutines.launch
 import java.util.*
 import android.graphics.Color
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 import com.example.finbot.Login
 import com.example.finbot.detection.DetectorActivity
@@ -63,11 +65,28 @@ class AddExpenseFragment : Fragment() {
         scanButton = view.findViewById(R.id.scan)
 
         scanButton.setOnClickListener {
-            startActivity(Intent(context, DetectorActivity::class.java))
+            val intent = Intent(requireContext(), DetectorActivity::class.java)
+            startActivityForResult(intent, 1001)
         }
 
         setupViews()
         return view
+    }
+
+    @Deprecated("Deprecated in Java") // but still works!
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == 1001 && resultCode == Activity.RESULT_OK) {
+            val name = data?.getStringExtra("name")
+            val date = data?.getStringExtra("date")
+            val amount = data?.getStringExtra("amount")
+
+            expenseNameInput.setText(name)
+            amountInput.setText(amount)
+
+            Toast.makeText(requireContext(), "Date: $date", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupViews() {
@@ -131,7 +150,7 @@ class AddExpenseFragment : Fragment() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val url = URL("http://192.168.8.103:8082/api/expenses/add")
+                    val url = URL("http://192.168.22.87:8082/api/expenses/add")
                     val conn = url.openConnection() as HttpURLConnection
                     conn.requestMethod = "POST"
                     conn.setRequestProperty("Content-Type", "application/json")

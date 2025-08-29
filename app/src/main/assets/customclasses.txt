@@ -1,8 +1,3 @@
-Address
-Date
-Item
-OrderId
-Subtotal
-Tax
-Title
 TotalPrice
+Title
+Date

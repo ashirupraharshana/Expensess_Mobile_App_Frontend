@@ -1,21 +1,6 @@
-/*
- * Copyright 2019 The TensorFlow Authors. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.finbot.detection;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -26,15 +11,26 @@ import android.graphics.Paint.Style;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
+import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 import android.util.TypedValue;
+import android.view.View;
 import android.widget.Toast;
 
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.example.finbot.R;
 import com.example.finbot.detection.customview.OverlayView;
@@ -60,17 +56,21 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 640);
     private static final boolean SAVE_PREVIEW_BITMAP = false;
     private static final float TEXT_SIZE_DIP = 10;
+
     OverlayView trackingOverlay;
     private Integer sensorOrientation;
 
     private YoloV5Classifier detector;
+    private TextRecognizer textRecognizer;
 
     private long lastProcessingTimeMs;
     private Bitmap rgbFrameBitmap = null;
     private Bitmap croppedBitmap = null;
     private Bitmap cropCopyBitmap = null;
+    private Bitmap capturedBitmap = null; // Store captured image for OCR
 
     private boolean computingDetection = false;
+    private boolean isCapturing = false;
 
     private long timestamp = 0;
 
@@ -78,8 +78,367 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private Matrix cropToFrameTransform;
 
     private MultiBoxTracker tracker;
-
     private BorderedText borderedText;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Initialize ML Kit Text Recognition
+        textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+        captureButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                captureAndProcessImage();
+            }
+        });
+    }
+
+    private void captureAndProcessImage() {
+        if (rgbFrameBitmap == null) {
+            Toast.makeText(this, "Camera not ready", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        isCapturing = true;
+        captureButton.setEnabled(false);
+        captureButton.setText("Processing...");
+
+        // Capture current frame
+        capturedBitmap = Bitmap.createBitmap(rgbFrameBitmap);
+
+        // Process the captured image
+        runInBackground(new Runnable() {
+            @Override
+            public void run() {
+                processCapturedImage();
+            }
+        });
+    }
+
+    private void processCapturedImage() {
+        try {
+            // 1. First run object detection on the captured image
+            final Canvas canvas = new Canvas(croppedBitmap);
+            canvas.drawBitmap(capturedBitmap, frameToCropTransform, null);
+
+            final List<Classifier.Recognition> detectionResults = detector.recognizeImage(croppedBitmap);
+
+            // 2. Find regions of interest (ROIs) from object detection
+            List<RectF> textRegions = extractTextRegions(detectionResults);
+
+            // 3. Perform OCR on the entire image and filtered regions
+            performOCRAnalysis(capturedBitmap, textRegions);
+
+        } catch (Exception e) {
+            LOGGER.e(e, "Error processing captured image");
+            runOnUiThread(() -> {
+                Toast.makeText(DetectorActivity.this, "Error processing image", Toast.LENGTH_SHORT).show();
+                resetCaptureButton();
+            });
+        }
+    }
+
+    private List<RectF> extractTextRegions(List<Classifier.Recognition> detectionResults) {
+        List<RectF> textRegions = new ArrayList<>();
+
+        // Filter detections for text-relevant objects (receipts, documents, labels, etc.)
+        for (Classifier.Recognition result : detectionResults) {
+            if (result.getConfidence() >= MINIMUM_CONFIDENCE_TF_OD_API) {
+                String detectedClass = result.getTitle().toLowerCase();
+
+                // Add logic to identify text-containing objects
+                // This depends on your YOLO model's classes
+                if (isTextRelevantClass(detectedClass)) {
+                    RectF location = result.getLocation();
+                    if (location != null) {
+                        // Map back to original image coordinates
+                        RectF originalLocation = new RectF(location);
+                        cropToFrameTransform.mapRect(originalLocation);
+                        textRegions.add(originalLocation);
+                    }
+                }
+            }
+        }
+
+        return textRegions;
+    }
+
+    private boolean isTextRelevantClass(String detectedClass) {
+        // Based on your YOLO classes that contain text information
+        return detectedClass.toLowerCase().contains("address") ||
+                detectedClass.toLowerCase().contains("date") ||
+                detectedClass.toLowerCase().contains("item") ||
+                detectedClass.toLowerCase().contains("orderid") ||
+                detectedClass.toLowerCase().contains("subtotal") ||
+                detectedClass.toLowerCase().contains("tax") ||
+                detectedClass.toLowerCase().contains("title") ||
+                detectedClass.toLowerCase().contains("totalprice");
+    }
+
+    private void performOCRAnalysis(Bitmap bitmap, List<RectF> textRegions) {
+        InputImage image = InputImage.fromBitmap(bitmap, 0);
+
+        textRecognizer.process(image)
+                .addOnSuccessListener(visionText -> {
+                    processOCRResults(visionText, textRegions);
+                })
+                .addOnFailureListener(e -> {
+                    LOGGER.e(e, "OCR processing failed");
+                    runOnUiThread(() -> {
+                        Toast.makeText(DetectorActivity.this, "OCR processing failed", Toast.LENGTH_SHORT).show();
+                        resetCaptureButton();
+                    });
+                });
+    }
+
+    private void processOCRResults(Text visionText, List<RectF> textRegions) {
+        StringBuilder allText = new StringBuilder();
+
+        // Initialize extracted fields
+        String extractedAddress = "";
+        String extractedDate = "";
+        String extractedItem = "";
+        String extractedOrderId = "";
+        String extractedSubtotal = "";
+        String extractedTax = "";
+        String extractedTitle = "";
+        String extractedTotalPrice = "";
+
+        // Process all detected text blocks
+        for (Text.TextBlock block : visionText.getTextBlocks()) {
+            String blockText = block.getText();
+            allText.append(blockText).append("\n");
+
+            RectF blockRect = new RectF(block.getBoundingBox());
+
+            // Check if this text block is within any of our ROIs or process all text
+            if (textRegions.isEmpty() || isWithinTextRegions(blockRect, textRegions)) {
+                // Extract specific information using regex patterns
+                if (extractedAddress.isEmpty()) extractedAddress = extractAddress(blockText);
+                if (extractedDate.isEmpty()) extractedDate = extractDate(blockText);
+                if (extractedItem.isEmpty()) extractedItem = extractItem(blockText);
+                if (extractedOrderId.isEmpty()) extractedOrderId = extractOrderId(blockText);
+                if (extractedSubtotal.isEmpty()) extractedSubtotal = extractSubtotal(blockText);
+                if (extractedTax.isEmpty()) extractedTax = extractTax(blockText);
+                if (extractedTitle.isEmpty()) extractedTitle = extractTitle(blockText);
+                if (extractedTotalPrice.isEmpty()) extractedTotalPrice = extractTotalPrice(blockText);
+            }
+        }
+
+        // If specific extraction failed, try on the complete text
+        String completeText = allText.toString();
+        if (extractedAddress.isEmpty()) extractedAddress = extractAddress(completeText);
+        if (extractedDate.isEmpty()) extractedDate = extractDate(completeText);
+        if (extractedItem.isEmpty()) extractedItem = extractItem(completeText);
+        if (extractedOrderId.isEmpty()) extractedOrderId = extractOrderId(completeText);
+        if (extractedSubtotal.isEmpty()) extractedSubtotal = extractSubtotal(completeText);
+        if (extractedTax.isEmpty()) extractedTax = extractTax(completeText);
+        if (extractedTitle.isEmpty()) extractedTitle = extractTitle(completeText);
+        if (extractedTotalPrice.isEmpty()) extractedTotalPrice = extractTotalPrice(completeText);
+
+        // Return results
+        String finalExtractedAddress = extractedAddress;
+        String finalExtractedDate = extractedDate;
+        String finalExtractedItem = extractedItem;
+        String finalExtractedOrderId = extractedOrderId;
+        String finalExtractedSubtotal = extractedSubtotal;
+        String finalExtractedTax = extractedTax;
+        String finalExtractedTitle = extractedTitle;
+        String finalExtractedTotalPrice = extractedTotalPrice;
+        runOnUiThread(() -> returnOCRResults(finalExtractedAddress, finalExtractedDate, finalExtractedItem,
+                finalExtractedOrderId, finalExtractedSubtotal, finalExtractedTax, finalExtractedTitle,
+                finalExtractedTotalPrice, completeText));
+    }
+
+    private boolean isWithinTextRegions(RectF textRect, List<RectF> textRegions) {
+        for (RectF region : textRegions) {
+            if (RectF.intersects(textRect, region)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String extractAddress(String text) {
+        // Patterns for extracting addresses
+        Pattern[] addressPatterns = {
+                Pattern.compile("(?i)address[:\\s]*([\\w\\s,.-]+?)(?=\\n|$|phone|tel|email|zip)", Pattern.DOTALL),
+                Pattern.compile("(?i)ship\\s*to[:\\s]*([\\w\\s,.-]+?)(?=\\n|$|phone|tel|email)", Pattern.DOTALL),
+                Pattern.compile("(?i)billing[:\\s]*address[:\\s]*([\\w\\s,.-]+?)(?=\\n|$|phone|tel)", Pattern.DOTALL),
+                Pattern.compile("(\\d+\\s+[\\w\\s]+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|blvd|boulevard)[\\w\\s,]*)", Pattern.CASE_INSENSITIVE),
+        };
+
+        for (Pattern pattern : addressPatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return matcher.group(1).trim().replaceAll("\\s+", " ");
+            }
+        }
+        return "";
+    }
+
+    private String extractDate(String text) {
+        // Patterns for extracting dates
+        Pattern[] datePatterns = {
+                Pattern.compile("(?i)date[:\\s]*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})"),
+                Pattern.compile("(?i)order\\s*date[:\\s]*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})"),
+                Pattern.compile("(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})"), // MM/DD/YYYY or MM-DD-YYYY
+                Pattern.compile("(\\d{2,4}[/-]\\d{1,2}[/-]\\d{1,2})"), // YYYY/MM/DD or YYYY-MM-DD
+                Pattern.compile("(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\\s,]+\\d{1,2}[\\s,]+\\d{2,4}"),
+                Pattern.compile("\\d{1,2}\\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\s+\\d{2,4}", Pattern.CASE_INSENSITIVE),
+        };
+
+        for (Pattern pattern : datePatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return matcher.group(matcher.groupCount()).trim();
+            }
+        }
+        return "";
+    }
+
+    private String extractItem(String text) {
+        // Patterns for extracting item names
+        Pattern[] itemPatterns = {
+                Pattern.compile("(?i)item[:\\s]*([\\w\\s.-]+?)(?=\\n|qty|quantity|price|\\$)", Pattern.DOTALL),
+                Pattern.compile("(?i)product[:\\s]*([\\w\\s.-]+?)(?=\\n|qty|quantity|price|\\$)", Pattern.DOTALL),
+                Pattern.compile("(?i)description[:\\s]*([\\w\\s.-]+?)(?=\\n|qty|quantity|price|\\$)", Pattern.DOTALL),
+                // Look for lines that might be item descriptions (common pattern: text followed by price)
+                Pattern.compile("([A-Za-z][\\w\\s.-]{3,})\\s+\\$?\\d+\\.\\d{2}"),
+        };
+
+        for (Pattern pattern : itemPatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return matcher.group(1).trim().replaceAll("\\s+", " ");
+            }
+        }
+        return "";
+    }
+
+    private String extractOrderId(String text) {
+        // Patterns for extracting order IDs
+        Pattern[] orderIdPatterns = {
+                Pattern.compile("(?i)order[\\s#]*id[:\\s#]*([A-Za-z0-9-]+)"),
+                Pattern.compile("(?i)order[\\s#]*number[:\\s#]*([A-Za-z0-9-]+)"),
+                Pattern.compile("(?i)receipt[\\s#]*number[:\\s#]*([A-Za-z0-9-]+)"),
+                Pattern.compile("(?i)transaction[\\s#]*id[:\\s#]*([A-Za-z0-9-]+)"),
+                Pattern.compile("#([A-Za-z0-9-]{6,})"), // Generic # followed by alphanumeric
+        };
+
+        for (Pattern pattern : orderIdPatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return matcher.group(1).trim();
+            }
+        }
+        return "";
+    }
+
+    private String extractSubtotal(String text) {
+        // Patterns for extracting subtotal
+        Pattern[] subtotalPatterns = {
+                Pattern.compile("(?i)subtotal[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)sub[\\s-]*total[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)before\\s*tax[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+        };
+
+        for (Pattern pattern : subtotalPatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return "$" + matcher.group(1).trim();
+            }
+        }
+        return "";
+    }
+
+    private String extractTax(String text) {
+        // Patterns for extracting tax
+        Pattern[] taxPatterns = {
+                Pattern.compile("(?i)tax[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)sales\\s*tax[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)vat[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)gst[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+        };
+
+        for (Pattern pattern : taxPatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return "$" + matcher.group(1).trim();
+            }
+        }
+        return "";
+    }
+
+    private String extractTitle(String text) {
+        // Patterns for extracting titles (business name, receipt title, etc.)
+        Pattern[] titlePatterns = {
+                Pattern.compile("(?i)title[:\\s]*([\\w\\s.-]+?)(?=\\n|address|phone|date)"),
+                Pattern.compile("(?i)business[\\s]*name[:\\s]*([\\w\\s.-]+?)(?=\\n|address|phone)"),
+                Pattern.compile("(?i)company[:\\s]*([\\w\\s.-]+?)(?=\\n|address|phone)"),
+                // First line that's likely a business name (all caps or title case)
+                Pattern.compile("^([A-Z][A-Z\\s&.-]{3,})$", Pattern.MULTILINE),
+        };
+
+        for (Pattern pattern : titlePatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return matcher.group(1).trim().replaceAll("\\s+", " ");
+            }
+        }
+        return "";
+    }
+
+    private String extractTotalPrice(String text) {
+        // Patterns for extracting total price
+        Pattern[] totalPatterns = {
+                Pattern.compile("(?i)total[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)grand[\\s]*total[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)amount[\\s]*due[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+                Pattern.compile("(?i)final[\\s]*total[:\\s]*\\$?\\s*([0-9,]+\\.?[0-9]*)"),
+        };
+
+        for (Pattern pattern : totalPatterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return "$" + matcher.group(1).trim();
+            }
+        }
+        return "";
+    }
+
+    private void returnOCRResults(String address, String date, String item, String orderId,
+                                  String subtotal, String tax, String title, String totalPrice, String fullText) {
+        // Log the results
+        LOGGER.i("OCR Results - Address: %s, Date: %s, Item: %s, OrderId: %s, Subtotal: %s, Tax: %s, Title: %s, TotalPrice: %s",
+                address, date, item, orderId, subtotal, tax, title, totalPrice);
+
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("address", address.isEmpty() ? "Not found" : address);
+        resultIntent.putExtra("date", date.isEmpty() ? "Not found" : date);
+        resultIntent.putExtra("item", item.isEmpty() ? "Not found" : item);
+        resultIntent.putExtra("order_id", orderId.isEmpty() ? "Not found" : orderId);
+        resultIntent.putExtra("subtotal", subtotal.isEmpty() ? "Not found" : subtotal);
+        resultIntent.putExtra("tax", tax.isEmpty() ? "Not found" : tax);
+        resultIntent.putExtra("title", title.isEmpty() ? "Not found" : title);
+        resultIntent.putExtra("total_price", totalPrice.isEmpty() ? "Not found" : totalPrice);
+        resultIntent.putExtra("full_text", fullText); // Include full extracted text
+
+        // For backward compatibility, map some fields to old names
+        resultIntent.putExtra("name", title.isEmpty() ? "Not found" : title); // Map title to name
+        resultIntent.putExtra("amount", totalPrice.isEmpty() ? "Not found" : totalPrice); // Map totalPrice to amount
+
+        setResult(RESULT_OK, resultIntent);
+        finish();
+    }
+
+    private void resetCaptureButton() {
+        isCapturing = false;
+        captureButton.setEnabled(true);
+        captureButton.setText("Capture");
+    }
 
     @Override
     public void onPreviewSizeChosen(final Size size, final int rotation) {
@@ -215,6 +574,12 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
     @Override
     protected void processImage() {
+        // Skip regular processing if we're capturing
+        if (isCapturing) {
+            readyForNextImage();
+            return;
+        }
+
         ++timestamp;
         final long currTimestamp = timestamp;
         trackingOverlay.postInvalidate();
@@ -294,6 +659,14 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                                 });
                     }
                 });
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (textRecognizer != null) {
+            textRecognizer.close();
+        }
     }
 
     @Override

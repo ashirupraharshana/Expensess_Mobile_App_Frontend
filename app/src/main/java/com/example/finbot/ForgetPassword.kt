@@ -31,7 +31,7 @@ class ForgetPassword : AppCompatActivity() {
     private lateinit var sendOtpBtn: Button
     private lateinit var submitBtn: Button
     private lateinit var loginBtn: TextView
-    private lateinit var tryAnotherWayBtn: TextView
+
 
     private lateinit var newPasswordLayout: TextInputLayout
     private lateinit var confirmPasswordLayout: TextInputLayout
@@ -51,7 +51,6 @@ class ForgetPassword : AppCompatActivity() {
         sendOtpBtn = findViewById(R.id.sentotpbtn)
         submitBtn = findViewById(R.id.submitbtn)
         loginBtn = findViewById(R.id.loginbtn)
-        tryAnotherWayBtn = findViewById(R.id.tryanotherway)
 
         // Initialize layouts
         newPasswordLayout = findViewById(R.id.passwordInputLayout2)
@@ -122,25 +121,18 @@ class ForgetPassword : AppCompatActivity() {
             startActivity(Intent(this, Login::class.java))
             finish()
         }
-
-        tryAnotherWayBtn.setOnClickListener {
-            // Reset the form to allow trying with different email
-            resetForm()
-        }
     }
 
     private fun hidePasswordFields() {
         newPasswordLayout.visibility = View.GONE
         confirmPasswordLayout.visibility = View.GONE
         submitBtn.visibility = View.GONE
-        tryAnotherWayBtn.visibility = View.GONE
     }
 
     private fun showPasswordFields() {
         newPasswordLayout.visibility = View.VISIBLE
         confirmPasswordLayout.visibility = View.VISIBLE
         submitBtn.visibility = View.VISIBLE
-        tryAnotherWayBtn.visibility = View.VISIBLE
     }
 
     private fun resetForm() {
@@ -163,7 +155,7 @@ class ForgetPassword : AppCompatActivity() {
 
     private fun sendPasswordResetOtp(email: String) {
         try {
-            val url = URL("http://192.168.8.103:8082/api/otp/send/password-reset")
+            val url = URL("http://192.168.22.87:8082/api/otp/send/password-reset")
             val json = JSONObject().apply {
                 put("email", email)
             }
@@ -255,7 +247,7 @@ class ForgetPassword : AppCompatActivity() {
 
     private fun verifyOtp(email: String, otpCode: String, dialog: androidx.appcompat.app.AlertDialog) {
         try {
-            val url = URL("http://192.168.8.103:8082/api/otp/verify")
+            val url = URL("http://192.168.22.87:8082/api/otp/verify")
             val json = JSONObject().apply {
                 put("email", email)
                 put("otpCode", otpCode)
@@ -307,7 +299,7 @@ class ForgetPassword : AppCompatActivity() {
 
     private fun resendOtp(email: String, resendBtn: Button) {
         try {
-            val url = URL("http://192.168.8.103:8082/api/otp/resend")
+            val url = URL("http://192.168.22.87:8082/api/otp/resend")
             val json = JSONObject().apply {
                 put("email", email)
                 put("purpose", "PASSWORD_RESET")
@@ -357,7 +349,7 @@ class ForgetPassword : AppCompatActivity() {
 
             // For now, let's assume we have a password update endpoint
             // You'll need to add this to your backend
-            val url = URL("http://192.168.8.103:8082/api/users/update-password")
+            val url = URL("http://192.168.22.87:8082/api/users/update-password")
             val json = JSONObject().apply {
                 put("email", email)
                 put("newPassword", newPassword)

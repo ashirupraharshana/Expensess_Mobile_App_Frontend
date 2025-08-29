@@ -53,6 +53,10 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-gpu:2.4.0")
 
 
+    implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.android.gms:play-services-tasks:18.2.0")
+
+
     // Material Design Components
     implementation("com.google.android.material:material:1.10.0")
 

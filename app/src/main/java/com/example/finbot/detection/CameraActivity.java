@@ -46,6 +46,7 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -90,6 +91,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private Runnable imageConverter;
   protected ArrayList<String> modelStrings = new ArrayList<String>();
 
+  protected Button captureButton;
   private LinearLayout bottomSheetLayout;
   private LinearLayout gestureLayout;
   private BottomSheetBehavior<LinearLayout> sheetBehavior;
@@ -123,6 +125,8 @@ public abstract class CameraActivity extends AppCompatActivity
     } else {
       requestPermission();
     }
+
+    captureButton = findViewById(R.id.capture);
 
     threadsTextView = findViewById(R.id.threads);
     currentNumThreads = Integer.parseInt(threadsTextView.getText().toString().trim());
