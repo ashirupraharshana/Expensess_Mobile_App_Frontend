@@ -17,17 +17,25 @@ import androidx.lifecycle.lifecycleScope
 import com.example.finbot.R
 import com.example.finbot.util.NotificationHelper
 import com.example.finbot.util.SnackbarUtil
+import com.example.finbot.data.ExpenseReportData
+import com.example.finbot.data.ExpenseItem
 import com.google.android.material.snackbar.Snackbar
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import org.json.JSONArray
 import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import com.example.finbot.util.PDFGenerator
 import com.example.finbot.util.ThemeManager
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.groupBy
 
 class profileFragment : Fragment() {
 
@@ -45,9 +53,9 @@ class profileFragment : Fragment() {
     private lateinit var darkModeButton: LinearLayout
     private lateinit var darkModeIcon: ImageView
     private lateinit var darkModeText: TextView
+    private lateinit var downloadExpensesPDF: Button
 
     private val currencies = arrayOf("LKR", "USD", "EUR", "GBP", "INR", "AUD")
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -58,7 +66,6 @@ class profileFragment : Fragment() {
 
         // Initialize managers
         notificationHelper = NotificationHelper.getInstance(requireContext())
-
 
         // Initialize views
         initializeViews(view)
@@ -88,6 +95,10 @@ class profileFragment : Fragment() {
         alertThresholdLayout = view.findViewById(R.id.alertThresholdLayout)
         view.findViewById<Button>(R.id.saveNotificationButton).setOnClickListener { saveNotificationSettings() }
 
+        // PDF Download button
+        downloadExpensesPDF = view.findViewById(R.id.downloadExpensesPDF)
+        downloadExpensesPDF.setOnClickListener { generateExpensesPDF() }
+
         // Setup dark mode toggle
         setupDarkModeToggle(view)
 
@@ -107,6 +118,256 @@ class profileFragment : Fragment() {
             requireActivity().finish()
         }
     }
+
+    private fun generateExpensesPDF() {
+        if (!isAdded || context == null) return
+
+        val userId = getUserIdFromSession()
+        if (userId.isEmpty()) {
+            showSnackbar("User ID not found")
+            return
+        }
+
+        // Show loading message
+        showSnackbar("Generating PDF report...")
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val reportData = fetchReportData(userId)
+                if (reportData != null) {
+                    val pdfFile = PDFGenerator.generateExpenseReport(requireContext(), reportData)
+
+                    withContext(Dispatchers.Main) {
+                        if (isAdded && pdfFile != null && pdfFile.exists()) {
+                            showSnackbar("PDF report saved to Downloads folder")
+
+                            // Open the PDF file
+                            try {
+                                val uri = FileProvider.getUriForFile(
+                                    requireContext(),
+                                    "${requireContext().packageName}.provider",
+                                    pdfFile
+                                )
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, "application/pdf")
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                }
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                showSnackbar("PDF saved successfully. File: ${pdfFile.name}")
+                            }
+                        } else {
+                            showSnackbar("Failed to generate PDF report")
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        if (isAdded) {
+                            showSnackbar("Failed to fetch report data")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        showSnackbar("Error generating PDF: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchReportData(userId: String): ExpenseReportData? {
+        return try {
+            // Fetch expenses
+            val expenses = fetchUserExpenses(userId)
+
+            // Fetch budget data
+            val budgetData = fetchUserBudget(userId)
+
+            // Fetch user data
+            val userData = fetchUserData(userId)
+
+            if (expenses != null && budgetData != null && userData != null) {
+                // Calculate analytics
+                val totalExpenses = expenses.sumOf { it.amount }
+                val budgetLimit = budgetData.optDouble("budget", 0.0)
+                val budgetPercentage = if (budgetLimit > 0) (totalExpenses / budgetLimit) * 100 else 0.0
+                val currencyIndex = budgetData.optInt("currency", 0)
+                val currencyType = getCurrencySymbol(currencyIndex)
+
+                // Calculate highest used category
+                val categoryTotals = expenses.groupBy { it.categoryId }
+                    .mapValues { entry -> entry.value.sumOf { it.amount } }
+                val highestCategory = categoryTotals.maxByOrNull { it.value }
+                val highestUsedCategory = if (highestCategory != null) {
+                    getCategoryName(highestCategory.key)
+                } else {
+                    "N/A"
+                }
+
+                // Calculate daily analytics
+                val dailyTotals = expenses.groupBy { it.date }
+                    .mapValues { entry -> entry.value.sumOf { it.amount } }
+                val mostExpensesValuePerDay = dailyTotals.values.maxOrNull() ?: 0.0
+                val dailyAverageValue = if (dailyTotals.isNotEmpty()) {
+                    dailyTotals.values.average()
+                } else {
+                    0.0
+                }
+
+                ExpenseReportData(
+                    totalExpenses = totalExpenses,
+                    budgetLimit = budgetLimit,
+                    budgetPercentage = budgetPercentage,
+                    budgetLimitValue = budgetLimit,
+                    highestUsedCategory = highestUsedCategory,
+                    currencyType = currencyType,
+                    username = userData.optString("username", "Unknown"),
+                    email = userData.optString("email", "Unknown"),
+                    mostExpensesValuePerDay = mostExpensesValuePerDay,
+                    dailyAverageValue = dailyAverageValue,
+                    expenses = expenses
+                )
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private suspend fun fetchUserExpenses(userId: String): List<ExpenseItem>? {
+        return try {
+            val url = URL("http://192.168.22.87:8082/api/expenses/user?userId=$userId")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Content-Type", "application/json")
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val inputStream = connection.inputStream
+                val response = inputStream.bufferedReader().use { it.readText() }
+
+                val jsonArray = JSONArray(response)
+                val expenses = mutableListOf<ExpenseItem>()
+
+                for (i in 0 until jsonArray.length()) {
+                    val expenseJson = jsonArray.getJSONObject(i)
+                    val expense = ExpenseItem(
+                        id = expenseJson.optString("id", ""),
+                        name = expenseJson.optString("name", ""),
+                        categoryId = expenseJson.optInt("categoryId", 0),
+                        categoryName = getCategoryName(expenseJson.optInt("categoryId", 0)),
+                        date = expenseJson.optString("date", ""),
+                        time = expenseJson.optString("time", ""),
+                        amount = expenseJson.optString("amount", "0").toDoubleOrNull() ?: 0.0,
+                        userId = expenseJson.optString("userId", "")
+                    )
+                    expenses.add(expense)
+                }
+
+                connection.disconnect()
+                expenses
+            } else {
+                connection.disconnect()
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private suspend fun fetchUserBudget(userId: String): JSONObject? {
+        return try {
+            val url = URL("http://192.168.22.87:8082/api/budget/get?userId=$userId")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Content-Type", "application/json")
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val inputStream = connection.inputStream
+                val response = inputStream.bufferedReader().use { it.readText() }
+                connection.disconnect()
+                JSONObject(response)
+            } else {
+                connection.disconnect()
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private suspend fun fetchUserData(userId: String): JSONObject? {
+        return try {
+            // Fetch username
+            val usernameUrl = URL("http://192.168.22.87:8082/api/users/username/$userId")
+            val usernameConnection = usernameUrl.openConnection() as HttpURLConnection
+            usernameConnection.requestMethod = "GET"
+            usernameConnection.setRequestProperty("Content-Type", "application/json")
+
+            val usernameResponseCode = usernameConnection.responseCode
+            var username = "Unknown"
+            if (usernameResponseCode == HttpURLConnection.HTTP_OK) {
+                val usernameInputStream = usernameConnection.inputStream
+                username = usernameInputStream.bufferedReader().use { it.readText() }.trim()
+            }
+            usernameConnection.disconnect()
+
+            // Fetch user details including email
+            val userDetailsUrl = URL("http://192.168.22.87:8082/api/users/$userId")
+            val userDetailsConnection = userDetailsUrl.openConnection() as HttpURLConnection
+            userDetailsConnection.requestMethod = "GET"
+            userDetailsConnection.setRequestProperty("Content-Type", "application/json")
+
+            val userDetailsResponseCode = userDetailsConnection.responseCode
+            var email = "user@finbot.com" // fallback
+
+            if (userDetailsResponseCode == HttpURLConnection.HTTP_OK) {
+                val userDetailsInputStream = userDetailsConnection.inputStream
+                val userResponse = userDetailsInputStream.bufferedReader().use { it.readText() }
+                val userJson = JSONObject(userResponse)
+                email = userJson.optString("email", "user@finbot.com")
+            }
+            userDetailsConnection.disconnect()
+
+            val userData = JSONObject()
+            userData.put("username", username)
+            userData.put("email", email)
+
+            userData
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Return default data if API calls fail
+            val userData = JSONObject()
+            userData.put("username", "Unknown")
+            userData.put("email", "user@finbot.com")
+            userData
+        }
+    }
+
+    private fun getCategoryName(categoryId: Int): String {
+        return when (categoryId) {
+            1 -> "Food"
+            2 -> "Shopping"
+            3 -> "Transport"
+            4 -> "Entertainment"
+            5 -> "Bills & Utilities"
+            6 -> "Healthcare"
+            7 -> "Education"
+            8 -> "Travel"
+            9 -> "Groceries"
+            10 -> "Other"
+            else -> "Unknown"
+        }
+    }
+
     private fun setupDarkModeToggle(view: View) {
         darkModeButton = view.findViewById(R.id.darkModeButton)
         darkModeIcon = view.findViewById(R.id.darkModeIcon)
@@ -192,7 +453,6 @@ class profileFragment : Fragment() {
         // Update dark mode UI in case theme was changed elsewhere
         updateDarkModeUI()
     }
-
 
     private fun loadSettings() {
         // Load all settings from backend
@@ -696,6 +956,7 @@ class profileFragment : Fragment() {
         super.onDestroy()
         // viewLifecycleOwner.lifecycleScope automatically cancels all coroutines
     }
+
     private fun showSnackbar(message: String) {
         val snackbar = Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT)
         snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), R.color.snackbar_background_light))

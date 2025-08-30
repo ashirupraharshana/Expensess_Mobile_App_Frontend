@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-
     id("kotlin-parcelize")
 }
 
@@ -52,10 +51,8 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:2.4.0")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.4.0")
 
-
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.android.gms:play-services-tasks:18.2.0")
-
 
     // Material Design Components
     implementation("com.google.android.material:material:1.10.0")
@@ -85,6 +82,10 @@ dependencies {
     // FlexboxLayout for flexible layouts
     implementation("com.google.android.flexbox:flexbox:3.0.0")
     implementation(libs.androidx.swiperefreshlayout)
+
+    // PDF Generation dependencies
+    implementation("com.itextpdf:itextpdf:5.5.13.3")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
