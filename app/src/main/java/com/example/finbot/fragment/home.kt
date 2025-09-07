@@ -189,7 +189,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/budget/currency?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/budget/currency?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -269,7 +269,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/users/username/$userId")
+                val url = URL("http://192.168.103.87:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -436,7 +436,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/total?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/expenses/total?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 8000
@@ -496,7 +496,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/user?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/expenses/user?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 8000
@@ -644,7 +644,7 @@ class homeFragment : Fragment() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // Fetch total expenses first
-                val expenseUrl = URL("http://192.168.22.87:8082/api/expenses/total?userId=$userId")
+                val expenseUrl = URL("http://192.168.103.87:8082/api/expenses/total?userId=$userId")
                 val expenseConnection = expenseUrl.openConnection() as HttpURLConnection
                 expenseConnection.requestMethod = "GET"
                 expenseConnection.connectTimeout = 8000
@@ -659,7 +659,7 @@ class homeFragment : Fragment() {
                 }
 
                 // Fetch budget from backend
-                val budgetUrl = URL("http://192.168.22.87:8082/api/budget/get?userId=$userId")
+                val budgetUrl = URL("http://192.168.103.87:8082/api/budget/get?userId=$userId")
                 val budgetConnection = budgetUrl.openConnection() as HttpURLConnection
                 budgetConnection.requestMethod = "GET"
                 budgetConnection.connectTimeout = 8000
@@ -993,6 +993,11 @@ class homeFragment : Fragment() {
 
         dialogView.findViewById<TextView>(R.id.addExpenseTitle).visibility = View.GONE
         dialogView.findViewById<LinearLayout>(R.id.addExpenseButtonGroup).visibility = View.GONE
+
+        // Hide the scan button if it exists
+        val scanButton = dialogView.findViewById<Button>(R.id.scan)
+        scanButton?.visibility = View.GONE
+
         val nameInput = dialogView.findViewById<EditText>(R.id.expenseNameInput)
         val categorySpinner = dialogView.findViewById<Spinner>(R.id.categorySpinner)
         val dateInput = dialogView.findViewById<TextView>(R.id.dateInput)
@@ -1077,7 +1082,7 @@ class homeFragment : Fragment() {
     private fun updateExpenseOnServer(updatedExpense: Expense) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/update/${updatedExpense.id}")
+                val url = URL("http://192.168.103.87:8082/api/expenses/update/${updatedExpense.id}")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "PUT"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -1193,7 +1198,7 @@ class homeFragment : Fragment() {
     private fun deleteExpenseFromServer(expense: Expense) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/${expense.id}")
+                val url = URL("http://192.168.103.87:8082/api/expenses/${expense.id}")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "DELETE"
                 connection.connectTimeout = 8000
@@ -1375,7 +1380,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/total?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/expenses/total?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 8000
@@ -1487,7 +1492,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/total?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/expenses/total?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 8000
@@ -1610,7 +1615,7 @@ class homeFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/expenses/total?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/expenses/total?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 8000

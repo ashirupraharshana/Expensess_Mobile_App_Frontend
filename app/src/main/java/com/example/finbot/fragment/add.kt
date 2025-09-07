@@ -41,7 +41,7 @@ class AddExpenseFragment : Fragment() {
     private lateinit var submitButton: Button
     private lateinit var cancelButton: Button
     private val calendar = Calendar.getInstance()
-    
+
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var notificationHelper: NotificationHelper
 
@@ -150,7 +150,7 @@ class AddExpenseFragment : Fragment() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val url = URL("http://192.168.22.87:8082/api/expenses/add")
+                    val url = URL("http://192.168.103.87:8082/api/expenses/add")
                     val conn = url.openConnection() as HttpURLConnection
                     conn.requestMethod = "POST"
                     conn.setRequestProperty("Content-Type", "application/json")

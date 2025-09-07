@@ -258,15 +258,6 @@
                     android:textColor="@color/white"
                     android:layout_marginBottom="8dp" />
 
-                <Button
-                    android:id="@+id/downloadEarningPDF"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Export Earning Data as PDF"
-                    android:backgroundTint="@color/progress"
-                    android:textColor="@color/white"
-                    android:layout_marginBottom="8dp" />
-
 
                 <!-- Dark Mode Toggle -->
                 <LinearLayout

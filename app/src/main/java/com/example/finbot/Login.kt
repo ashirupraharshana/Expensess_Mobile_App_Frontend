@@ -63,7 +63,7 @@ class Login : AppCompatActivity() {
     private fun loginUser(email: String, password: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = URL("http://192.168.22.87:8082/api/users/login")
+                val url = URL("http://192.168.103.87:8082/api/users/login")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.setRequestProperty("Content-Type", "application/json")

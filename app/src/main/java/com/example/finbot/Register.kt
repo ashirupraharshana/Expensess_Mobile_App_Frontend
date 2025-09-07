@@ -18,6 +18,7 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import android.util.Patterns
 
 class Register : AppCompatActivity() {
 
@@ -56,11 +57,19 @@ class Register : AppCompatActivity() {
         // Initially hide OTP field and other fields
         hideRegistrationFields()
 
-        // Set up click listeners
         sendOtpBtn.setOnClickListener {
             val email = emailField.text.toString().trim()
+
+            // Clear previous error
+            setEmailError(null)
+
             if (email.isEmpty()) {
-                Toast.makeText(this, "Please enter email", Toast.LENGTH_SHORT).show()
+                setEmailError("Email is required")
+                return@setOnClickListener
+            }
+
+            if (!isValidEmail(email)) {
+                setEmailError("Please enter a valid email address")
                 return@setOnClickListener
             }
 
@@ -83,6 +92,17 @@ class Register : AppCompatActivity() {
                 sendOtpBtn.text = "Verifying..."
                 CoroutineScope(Dispatchers.IO).launch {
                     verifyOtpRequest(email, otpCode)
+                }
+            }
+        }
+
+        emailField.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val email = emailField.text.toString().trim()
+                if (email.isNotEmpty() && !isValidEmail(email)) {
+                    setEmailError("Please enter a valid email address")
+                } else {
+                    setEmailError(null)
                 }
             }
         }
@@ -114,6 +134,15 @@ class Register : AppCompatActivity() {
         }
     }
 
+    private fun isValidEmail(email: String): Boolean {
+        return email.isNotEmpty() && Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    private fun setEmailError(message: String?) {
+        val emailLayout = findViewById<TextInputLayout>(R.id.emailInputLayout)
+        emailLayout.error = message
+    }
+
     private fun hideRegistrationFields() {
         otpLayout.visibility = View.GONE
         nameLayout.visibility = View.GONE
@@ -133,7 +162,7 @@ class Register : AppCompatActivity() {
 
     private fun sendOtpRequest(email: String) {
         try {
-            val url = URL("http://192.168.22.87:8082/api/otp/send/registration")
+            val url = URL("http://192.168.103.87:8082/api/otp/send/registration")
             val json = JSONObject().apply {
                 put("email", email)
             }
@@ -186,7 +215,7 @@ class Register : AppCompatActivity() {
 
     private fun verifyOtpRequest(email: String, otpCode: String) {
         try {
-            val url = URL("http://192.168.22.87:8082/api/otp/verify")
+            val url = URL("http://192.168.103.87:8082/api/otp/verify")
             val json = JSONObject().apply {
                 put("email", email)
                 put("otpCode", otpCode)
@@ -235,7 +264,7 @@ class Register : AppCompatActivity() {
 
     private fun sendRegisterRequest(username: String, email: String, password: String) {
         try {
-            val url = URL("http://192.168.22.87:8082/api/users/register")
+            val url = URL("http://192.168.103.87:8082/api/users/register")
             val json = JSONObject().apply {
                 put("username", username)
                 put("email", email)

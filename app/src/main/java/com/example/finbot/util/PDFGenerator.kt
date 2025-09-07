@@ -21,13 +21,9 @@ class PDFGenerator {
                 1 -> "Food"
                 2 -> "Shopping"
                 3 -> "Transport"
-                4 -> "Entertainment"
-                5 -> "Bills & Utilities"
-                6 -> "Healthcare"
-                7 -> "Education"
-                8 -> "Travel"
-                9 -> "Groceries"
-                10 -> "Other"
+                4 -> "Health"
+                5 -> "Utilities"
+                6 -> "Others"
                 else -> "Unknown"
             }
         }

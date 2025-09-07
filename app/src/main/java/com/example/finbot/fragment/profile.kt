@@ -241,7 +241,7 @@ class profileFragment : Fragment() {
 
     private suspend fun fetchUserExpenses(userId: String): List<ExpenseItem>? {
         return try {
-            val url = URL("http://192.168.22.87:8082/api/expenses/user?userId=$userId")
+            val url = URL("http://192.168.103.87:8082/api/expenses/user?userId=$userId")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.setRequestProperty("Content-Type", "application/json")
@@ -283,7 +283,7 @@ class profileFragment : Fragment() {
 
     private suspend fun fetchUserBudget(userId: String): JSONObject? {
         return try {
-            val url = URL("http://192.168.22.87:8082/api/budget/get?userId=$userId")
+            val url = URL("http://192.168.103.87:8082/api/budget/get?userId=$userId")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.setRequestProperty("Content-Type", "application/json")
@@ -307,7 +307,7 @@ class profileFragment : Fragment() {
     private suspend fun fetchUserData(userId: String): JSONObject? {
         return try {
             // Fetch username
-            val usernameUrl = URL("http://192.168.22.87:8082/api/users/username/$userId")
+            val usernameUrl = URL("http://192.168.103.87:8082/api/users/username/$userId")
             val usernameConnection = usernameUrl.openConnection() as HttpURLConnection
             usernameConnection.requestMethod = "GET"
             usernameConnection.setRequestProperty("Content-Type", "application/json")
@@ -321,7 +321,7 @@ class profileFragment : Fragment() {
             usernameConnection.disconnect()
 
             // Fetch user details including email
-            val userDetailsUrl = URL("http://192.168.22.87:8082/api/users/$userId")
+            val userDetailsUrl = URL("http://192.168.103.87:8082/api/users/$userId")
             val userDetailsConnection = userDetailsUrl.openConnection() as HttpURLConnection
             userDetailsConnection.requestMethod = "GET"
             userDetailsConnection.setRequestProperty("Content-Type", "application/json")
@@ -467,7 +467,7 @@ class profileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("http://192.168.22.87:8082/api/users/username/$userId")
+                val url = URL("http://192.168.103.87:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -517,7 +517,7 @@ class profileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("http://192.168.22.87:8082/api/budget/save")
+                val url = URL("http://192.168.103.87:8082/api/budget/save")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -564,7 +564,7 @@ class profileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("http://192.168.22.87:8082/api/budget/get?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/budget/get?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -633,7 +633,7 @@ class profileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("http://192.168.22.87:8082/api/budget/get?userId=$userId")
+                val url = URL("http://192.168.103.87:8082/api/budget/get?userId=$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -737,7 +737,7 @@ class profileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("http://192.168.22.87:8082/api/users/username/$userId")
+                val url = URL("http://192.168.103.87:8082/api/users/username/$userId")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "PUT"
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -822,7 +822,7 @@ class profileFragment : Fragment() {
 
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    val budgetUrl = URL("http://192.168.22.87:8082/api/budget/update/budget?userId=$userId&budget=$budget")
+                    val budgetUrl = URL("http://192.168.103.87:8082/api/budget/update/budget?userId=$userId&budget=$budget")
                     val budgetConnection = budgetUrl.openConnection() as HttpURLConnection
                     budgetConnection.requestMethod = "PUT"
                     budgetConnection.setRequestProperty("Content-Type", "application/json")
@@ -831,7 +831,7 @@ class profileFragment : Fragment() {
                     budgetConnection.disconnect()
 
                     if (budgetResponseCode == HttpURLConnection.HTTP_OK) {
-                        val currencyUrl = URL("http://192.168.22.87:8082/api/budget/update/currency?userId=$userId&currency=$currencyIndex")
+                        val currencyUrl = URL("http://192.168.103.87:8082/api/budget/update/currency?userId=$userId&currency=$currencyIndex")
                         val currencyConnection = currencyUrl.openConnection() as HttpURLConnection
                         currencyConnection.requestMethod = "PUT"
                         currencyConnection.setRequestProperty("Content-Type", "application/json")
@@ -905,7 +905,7 @@ class profileFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("http://192.168.22.87:8082/api/budget/update/notifications?userId=$userId&notificationsEnabled=$notificationsEnabled&reminderEnabled=$reminderEnabled&alertPercent=$alertPercent")
+                val url = URL("http://192.168.103.87:8082/api/budget/update/notifications?userId=$userId&notificationsEnabled=$notificationsEnabled&reminderEnabled=$reminderEnabled&alertPercent=$alertPercent")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "PUT"
                 connection.setRequestProperty("Content-Type", "application/json")
