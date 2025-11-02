@@ -1,1 +1,1 @@
-![FinBot - A personalize Finance Tracker](https://github.com/user-attachments/assets/2d2e5dbe-4d95-4dc0-a127-6895a82b4908)
+![FinBot - A personalize Finance Tracker](https://github.com/ashirupraharshana/Expensess_Mobile_App_Frontend/blob/b963430790a51542e81202ec249cbacdf77f7f63/photo1.png)
